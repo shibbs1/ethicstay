@@ -24,7 +24,7 @@
   nav{position:sticky;top:0;z-index:50;background:rgba(250,246,239,.92);backdrop-filter:blur(8px);
       display:flex;align-items:center;justify-content:space-between;padding:14px 5vw;
       border-bottom:1px solid var(--cream-dark)}
-  nav .logo{font-size:1.25rem;color:var(--terracotta);font-weight:700}
+  nav .logo{font-size:1.25rem;color:var(--terracotta);font-weight:700;text-decoration:none;cursor:pointer;display:block}
   nav .logo span{color:var(--teak);font-weight:400;font-size:.8rem;display:block;letter-spacing:2px;text-transform:uppercase}
   nav ul{display:flex;gap:26px;list-style:none}
   nav a{color:var(--teak);text-decoration:none;font-size:.95rem}
@@ -143,7 +143,7 @@
 <body>
 
 <nav class="sans">
-  <div class="logo">Blessings Home<span>An EthicStay Property</span></div>
+  <a class="logo" href="/" onclick="window.scrollTo({top:0,behavior:'smooth'});history.pushState(null,'',window.location.pathname);return false;">Blessings Home<span>An EthicStay Property</span></a>
   <ul class="sans">
     <li><a href="#home">The Home</a></li>
     <li><a href="#book">Book</a></li>
