@@ -146,8 +146,10 @@
   /* carousel mode */
   .carousel-wrap{position:relative}
   .grid.carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:16px;padding-bottom:10px;scrollbar-width:thin}
-  .grid.carousel figure{flex:0 0 min(72vw,420px);scroll-snap-align:center}
-  .grid.carousel img{height:300px}
+  .grid.carousel figure{flex:0 0 86vw;scroll-snap-align:center}
+  .grid.carousel img{height:320px}
+  @media(min-width:700px){.grid.carousel figure{flex:0 0 60vw}.grid.carousel img{height:400px}}
+  @media(min-width:1100px){.grid.carousel figure{flex:0 0 36%}.grid.carousel img{height:420px}}
   .car-btn{display:none;position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:44px;height:44px;border-radius:50%;
     border:none;background:rgba(250,246,239,.95);color:var(--teak);font-size:1.4rem;cursor:pointer;box-shadow:var(--shadow)}
   .car-btn:hover{background:var(--terracotta);color:#fff}
@@ -384,7 +386,7 @@
       <ul>
         <li>Front-yard pandal setup for 20–50 guests (permission ₹2,000–₹5,000 by gathering size)</li>
         <li>Twin catering-ready kitchens — gas stoves, pressure cookers, earthen pots, puttu kudam, appam kadai</li>
-        <li>Serving ware &amp; crockery included</li>
+        <li>Serving ware &amp; crockery for up to 10–12 guests — for larger gatherings, caterers bring bulk service</li>
         <li>Dedicated waste-disposal areas</li>
         <li>₹5,000 refundable security deposit</li>
       </ul>
@@ -430,17 +432,24 @@
     <figure data-t="kitchen" data-c="gf"><img src="assets/img/blessings-home-v2-gf-11.jpeg" alt=""><figcaption>Kitchen — fridge &amp; microwave</figcaption></figure>
     <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-05.jpeg" alt=""><figcaption>Bedroom 1 — window seat</figcaption></figure>
     <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-03.jpeg" alt=""><figcaption>Bedroom 1 — wardrobes &amp; dressing</figcaption></figure>
-    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-17.jpeg" alt=""><figcaption>Master Bedroom — air-conditioned</figcaption></figure>
-    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-01.jpeg" alt=""><figcaption>Office-cum-bedroom</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-17.jpeg" alt=""><figcaption>Bedroom 2 (Master) — air-conditioned</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v1-13.jpeg" alt=""><figcaption>Bedroom 2 (Master) — wardrobe wall, another view</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v1-11.jpeg" alt=""><figcaption>Bedroom 2 (Master) — with dressing nook</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-01.jpeg" alt=""><figcaption>Bedroom 3 (Office-cum-bedroom)</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v1-26.jpeg" alt=""><figcaption>Bedroom 3 — the office in action</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v1-27.jpeg" alt=""><figcaption>Bedroom 3 — work &amp; discussions</figcaption></figure>
     <figure data-t="bathroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-08.jpeg" alt=""><figcaption>Bathroom 1 — attached</figcaption></figure>
     <figure data-t="bathroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-12.jpeg" alt=""><figcaption>Master Bedroom — attached bathroom</figcaption></figure>
     <figure data-t="bathroom" data-c="gf"><img src="assets/img/blessings-home-v2-gf-02.jpeg" alt=""><figcaption>Common Bathroom</figcaption></figure>
     <!-- Upper Castle -->
     <figure data-t="kitchen" data-c="uc"><img src="assets/img/blessings-home-v2-uc-13.jpeg" alt=""><figcaption>Upper Castle — dining &amp; kitchen</figcaption></figure>
-    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-20.jpeg" alt=""><figcaption>Master bedroom</figcaption></figure>
-    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-17.jpeg" alt=""><figcaption>Air-conditioned bedroom</figcaption></figure>
-    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-15.jpeg" alt=""><figcaption>Twin bedroom</figcaption></figure>
-    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-08.jpeg" alt=""><figcaption>Kids' room — double floor mattress</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-20.jpeg" alt=""><figcaption>Bedroom 4 (Master, Upper Castle) — air-conditioned</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-17.jpeg" alt=""><figcaption>Bedroom 7 (Extra children's) — air-conditioned</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v1-30.jpeg" alt=""><figcaption>Bedroom 7 — wardrobe &amp; study nook</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-15.jpeg" alt=""><figcaption>Bedroom 6 (Twin)</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v1-29.jpeg" alt=""><figcaption>Bedroom 6 (Twin) — wardrobe &amp; mirror</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-08.jpeg" alt=""><figcaption>Bedroom 5 (Children's) — double floor mattress</figcaption></figure>
+    <figure data-t="bedroom" data-c="uc"><img src="assets/img/blessings-home-v1-28.jpeg" alt=""><figcaption>Bedroom 5 (Children's) — window seat &amp; storage</figcaption></figure>
     <figure data-t="bathroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-04.jpeg" alt=""><figcaption>Bathroom 1 — marble bath + laundry</figcaption></figure>
     <figure data-t="bathroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-05.jpeg" alt=""><figcaption>Bathroom 2 — attached</figcaption></figure>
     <figure data-t="bathroom" data-c="uc"><img src="assets/img/blessings-home-v2-uc-14.jpeg" alt=""><figcaption>Bathroom 3 — attached</figcaption></figure>
@@ -450,8 +459,8 @@
     <figure data-t="kitchen" data-c="int"><img src="assets/img/blessings-home-v1-19.jpeg" alt=""><figcaption>Kitchen bar counter</figcaption></figure>
     <figure data-t="living" data-c="int"><img src="assets/img/blessings-home-v1-18.jpeg" alt=""><figcaption>TV feature wall</figcaption></figure>
     <figure data-t="living" data-c="int"><img src="assets/img/blessings-home-v1-25.jpeg" alt=""><figcaption>Prayer unit</figcaption></figure>
-    <figure data-t="bedroom" data-c="int"><img src="assets/img/blessings-home-v1-24.jpeg" alt=""><figcaption>Window seat &amp; wardrobes</figcaption></figure>
-    <figure data-t="bedroom" data-c="int"><img src="assets/img/blessings-home-v1-03.jpeg" alt=""><figcaption>Bedroom wardrobe wall</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v1-24.jpeg" alt=""><figcaption>Bedroom 1 — window seat &amp; wardrobes</figcaption></figure>
+    <figure data-t="bedroom" data-c="gf"><img src="assets/img/blessings-home-v1-03.jpeg" alt=""><figcaption>Bedroom 2 (Master) — wardrobe wall</figcaption></figure>
     <figure data-t="kitchen" data-c="int"><img src="assets/img/blessings-home-v1-31.jpeg" alt=""><figcaption>Hanging pendant lights</figcaption></figure>
     <!-- Outdoors -->
     <figure data-c="out"><img src="assets/img/airbnb-01-exterior-front.jpeg" alt=""><figcaption>Front elevation &amp; yard</figcaption></figure>
@@ -546,9 +555,8 @@
 
 <footer class="sans">
   <b>Blessings Home</b> · An EthicStay Property · <b>ethicstay.com</b><br>
-  Shibu Devasia (Karukappally) · Landmark: Near Alphonsa Nivas Convent<br>
-  Koonanthanam – Purakadavu Rd, Veroor PO – 686104, Changanaserri, Kerala<br>
-  Bookings: Saju (Guest Manager) 99614 21350 · Owner: Shibu 99596 51975 (WhatsApp)<br>
+  Karukappally House, Koonanthanam – Purakadavu Rd, Veroor PO 686104, Changanaserri, Kerala <span style="color:#a89a88">(near Alphonsa Nivas Convent)</span><br>
+  Bookings: Saju 99614 21350 · WhatsApp: Shibu 99596 51975<br>
   <a href="https://www.airbnb.co.in/rooms/1460919167215237914" style="color:var(--terracotta)">Airbnb: Full Villa</a> ·
   <a href="https://www.airbnb.co.in/rooms/1489153060234303226" style="color:var(--terracotta)">Ground Floor</a> ·
   <a href="https://www.airbnb.co.in/rooms/1486910705388884731" style="color:var(--terracotta)">Upper Castle</a><br>
