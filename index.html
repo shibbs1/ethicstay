@@ -88,6 +88,18 @@
   .fact .n{font-size:1.7rem;color:var(--terracotta);font-weight:700}
   .fact .l{font-size:.85rem;color:var(--teak);margin-top:4px}
 
+  /* ---------- amenities ---------- */
+  .amen{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:30px}
+  @media(max-width:760px){.amen{grid-template-columns:1fr}}
+  .amen-col{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:28px}
+  .amen-col h3{color:var(--teak);margin-bottom:14px;font-size:1.15rem}
+  .amen-col h3 small{color:#7a6a58;font-weight:400;font-size:.75em}
+  .amen-col ul{list-style:none;font-size:.93rem;color:#4c3d2f;line-height:2}
+  .amen-col ul li{padding-left:18px;position:relative}
+  .amen-col ul li::before{content:'✦';color:var(--gold);position:absolute;left:0;font-size:.8em;top:2px}
+  .amen-shared{margin-top:20px;background:var(--cream-dark);border-radius:var(--radius);padding:16px 22px;
+    font-size:.88rem;color:var(--teak);text-align:center;line-height:1.9}
+
   /* ---------- booking cards ---------- */
   .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr));gap:26px;margin-top:46px}
   .card{background:#fff;border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow);
@@ -211,6 +223,42 @@
     <div class="fact"><div class="n">4</div><div class="l">AC Rooms</div></div>
     <div class="fact"><div class="n">2</div><div class="l">Full Kitchens</div></div>
     <div class="fact"><div class="n">2</div><div class="l">Office Rooms</div></div>
+  </div>
+
+  <div class="reveal" style="margin-top:50px">
+    <div class="kicker sans">Amenities</div>
+    <h2>Everything inside, floor by floor</h2>
+    <div class="amen">
+      <div class="amen-col">
+        <h3>Ground Floor</h3>
+        <ul>
+          <li>3 bedrooms (1 office-cum-bedroom) — Master &amp; Bedroom 1 air-conditioned</li>
+          <li>3 bathrooms</li>
+          <li>Living room — L-corner sofa (3+2+1) &amp; 65" LG smart TV</li>
+          <li>Hall — redwood sofa set (3+1+1)</li>
+          <li>Dining — 8-seater teakwood table &amp; chairs</li>
+          <li>Kitchen with chimney — all cooking utensils &amp; crockery</li>
+          <li>Work area — water dispenser &amp; cans · microwave</li>
+          <li>Double-door fridge · washing machine · inverter backup</li>
+        </ul>
+      </div>
+      <div class="amen-col">
+        <h3>Upper Castle <small>(First Floor)</small></h3>
+        <ul>
+          <li>4 bedrooms (1 office-cum-bedroom) — Master &amp; Bedroom 1 air-conditioned</li>
+          <li>3 bathrooms</li>
+          <li>Living room — sofa set (3+1+1) &amp; 43" LG TV</li>
+          <li>Hall &amp; dining — 6-seater table &amp; chairs</li>
+          <li>Kitchen — gas stove · water dispenser &amp; cans</li>
+          <li>Fridge · washing machine</li>
+          <li>Balcony sitout &amp; open terrace access</li>
+          <li>Private entrance</li>
+        </ul>
+      </div>
+    </div>
+    <div class="amen-shared sans">
+      Throughout the home: WiFi · 4 ACs · fans, lights &amp; window blinds in every room · pet-friendly · free parking in the front yard
+    </div>
   </div>
 </section>
 
