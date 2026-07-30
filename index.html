@@ -117,7 +117,11 @@
   .q{background:#fff;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);position:relative}
   .q::before{content:'“';font-size:4rem;color:var(--gold);position:absolute;top:-6px;left:16px;opacity:.5}
   .q p{font-style:italic;line-height:1.65;margin-bottom:14px;padding-top:14px}
-  .q .who{font-size:.85rem;color:var(--terracotta);letter-spacing:1px}
+  .q .who{display:flex;align-items:center;gap:12px;margin-top:6px}
+  .q .who img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--cream-dark)}
+  .q .who .n{font-size:.9rem;color:var(--terracotta);font-weight:700}
+  .q .who .m{font-size:.78rem;color:#7a6a58}
+  .q .badge{display:inline-block;background:var(--palm);color:#fff;font-size:.68rem;padding:2px 10px;border-radius:12px;margin-left:6px;vertical-align:middle}
 
   /* ---------- enquiry ---------- */
   .enquiry{background:linear-gradient(120deg,var(--terracotta),var(--terracotta-dark));border-radius:26px;
@@ -367,10 +371,17 @@
     <h2>Functions &amp; families, happily hosted</h2>
   </div>
   <div class="quotes reveal">
-    <div class="q"><p>We hosted our madaram function here — the yard fit our pandal perfectly and both kitchens ran all day. Spotless house.</p><div class="who sans">— PLACEHOLDER · Changanassery</div></div>
-    <div class="q"><p>Fourteen of us stayed for a wedding weekend. Rooms for everyone, and the kids loved the garden.</p><div class="who sans">— PLACEHOLDER · Kochi</div></div>
-    <div class="q"><p>The office room made my work-from-Kerala month effortless. Peaceful, green, genuinely blissful.</p><div class="who sans">— PLACEHOLDER · Bengaluru</div></div>
+    <div class="q"><p>The house is well planned in terms of fixtures and tiling — I thought someone was recently staying here and then moved abroad.</p>
+      <div class="who sans"><img src="assets/img/guests/bhanu.jpg" alt="Bhanu">
+        <div><div class="n">Bhanu</div><div class="m">Bangalore · stayed with family &amp; their beagle 🐕 · Oct 2025</div></div></div></div>
+    <div class="q"><p>All good, checked in. Appreciate all your help!</p>
+      <div class="who sans"><img src="assets/img/guests/kevin.jpg" alt="Kevin">
+        <div><div class="n">Kevin</div><div class="m">Family of 4 · Ground Floor stay · Dec 2025</div></div></div></div>
+    <div class="q"><p>Thank you for being so patient with all my questions.</p>
+      <div class="who sans"><img src="assets/img/guests/mini.jpg" alt="Mini">
+        <div><div class="n">Mini</div><div class="m">Huntington, USA · family gathering stay · Jan 2026</div></div></div></div>
   </div>
+  <p class="sans reveal" style="margin-top:18px;font-size:.8rem;color:#7a6a58">Words from our Airbnb guests' messages, shared with a smile 🙏</p>
 </section>
 
 <section>
