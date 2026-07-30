@@ -138,6 +138,35 @@
   .grid figcaption{position:absolute;bottom:0;left:0;right:0;padding:26px 14px 12px;font-size:.82rem;color:#fff;
        background:linear-gradient(transparent,rgba(43,33,24,.85))}
   .hide{display:none}
+  /* view toggle */
+  .gal-bar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap}
+  .view-toggle{display:flex;gap:6px;background:#fff;border-radius:30px;padding:4px;box-shadow:var(--shadow);align-self:flex-start}
+  .view-toggle button{border:none;background:transparent;color:var(--teak);padding:8px 16px;border-radius:24px;cursor:pointer;font-family:inherit;font-size:.85rem;transition:.2s}
+  .view-toggle button.active{background:var(--teak);color:var(--cream)}
+  /* carousel mode */
+  .carousel-wrap{position:relative}
+  .grid.carousel{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:16px;padding-bottom:10px;scrollbar-width:thin}
+  .grid.carousel figure{flex:0 0 min(72vw,420px);scroll-snap-align:center}
+  .grid.carousel img{height:300px}
+  .car-btn{display:none;position:absolute;top:50%;transform:translateY(-50%);z-index:5;width:44px;height:44px;border-radius:50%;
+    border:none;background:rgba(250,246,239,.95);color:var(--teak);font-size:1.4rem;cursor:pointer;box-shadow:var(--shadow)}
+  .car-btn:hover{background:var(--terracotta);color:#fff}
+  .carousel-wrap.on .car-btn{display:block}
+  .car-prev{left:-8px}.car-next{right:-8px}
+  /* lightbox */
+  .lb{position:fixed;inset:0;background:rgba(20,14,9,.94);z-index:100;display:none;align-items:center;justify-content:center;flex-direction:column}
+  .lb.open{display:flex}
+  .lb img{max-width:92vw;max-height:78vh;object-fit:contain;border-radius:8px;box-shadow:0 20px 80px rgba(0,0,0,.6)}
+  .lb .lb-cap{color:var(--cream);margin-top:16px;font-size:.95rem;text-align:center;padding:0 6vw}
+  .lb .lb-count{color:#a89a88;font-size:.78rem;margin-top:6px}
+  .lb button{position:absolute;border:none;background:rgba(250,246,239,.12);color:#fff;cursor:pointer;border-radius:50%;
+    width:52px;height:52px;font-size:1.6rem;transition:.2s;display:flex;align-items:center;justify-content:center}
+  .lb button:hover{background:var(--terracotta)}
+  .lb .lb-prev{left:3vw;top:50%;transform:translateY(-50%)}
+  .lb .lb-next{right:3vw;top:50%;transform:translateY(-50%)}
+  .lb .lb-close{top:20px;right:20px;font-size:1.2rem}
+  @media(max-width:600px){.lb .lb-prev{left:2vw}.lb .lb-next{right:2vw}.lb button{width:42px;height:42px}}
+  #grid figure{cursor:zoom-in}
 
   /* ---------- location ---------- */
   .loc{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:start}
@@ -371,7 +400,8 @@
     <div class="kicker sans">Gallery</div>
     <h2>Walk through the home</h2>
   </div>
-  <div class="tabs sans reveal">
+  <div class="gal-bar reveal">
+  <div class="tabs sans" style="margin:30px 0 26px">
     <button class="tab active" data-f="all">All</button>
     <button class="tab" data-f="bedroom">Bedrooms</button>
     <button class="tab" data-f="bathroom">Bathrooms</button>
@@ -382,6 +412,14 @@
     <button class="tab" data-f="int">Interiors &amp; Details</button>
     <button class="tab" data-f="out">Outdoors</button>
   </div>
+  <div class="view-toggle sans" style="margin-top:30px">
+    <button id="vg" class="active" title="Grid view">⊞ Grid</button>
+    <button id="vc" title="Carousel view">⊟ Carousel</button>
+  </div>
+  </div>
+  <div class="carousel-wrap" id="carwrap">
+  <button class="car-btn car-prev" id="carprev" aria-label="Previous">‹</button>
+  <button class="car-btn car-next" id="carnext" aria-label="Next">›</button>
   <div class="grid reveal" id="grid">
     <!-- Ground floor -->
     <figure data-t="living" data-c="gf"><img src="assets/img/blessings-home-v2-gf-14.jpeg" alt=""><figcaption>Living hall — 65" TV, dining &amp; sofas</figcaption></figure>
@@ -425,6 +463,7 @@
     <figure data-c="out"><img src="assets/img/airbnb-15-jackfruit-tree.jpeg" alt=""><figcaption>Jackfruit on the tree</figcaption></figure>
     <figure data-c="out"><img src="assets/img/airbnb-11-terrace.jpeg" alt=""><figcaption>Open terrace</figcaption></figure>
     <figure data-c="out"><img src="assets/img/airbnb-12-garden-view.jpeg" alt=""><figcaption>Backyard view from the terrace</figcaption></figure>
+  </div>
   </div>
 </section>
 
@@ -516,6 +555,15 @@
   © 2026 EthicStay
 </footer>
 
+<div class="lb" id="lb">
+  <button class="lb-close" id="lbclose" aria-label="Close">✕</button>
+  <button class="lb-prev" id="lbprev" aria-label="Previous">‹</button>
+  <img id="lbimg" src="" alt="">
+  <div class="lb-cap sans" id="lbcap"></div>
+  <div class="lb-count sans" id="lbcount"></div>
+  <button class="lb-next" id="lbnext" aria-label="Next">›</button>
+</div>
+
 <script>
   // scroll reveal
   const io=new IntersectionObserver(es=>es.forEach(e=>{if(e.isIntersecting){e.target.classList.add('show');io.unobserve(e.target)}}),{threshold:.12});
@@ -531,6 +579,34 @@
       fig.classList.toggle('hide', f!=='all' && fig.dataset.c!==f && fig.dataset.t!==f);
     });
   }));
+  // view toggle
+  const grid=document.getElementById('grid'), carwrap=document.getElementById('carwrap');
+  const vg=document.getElementById('vg'), vc=document.getElementById('vc');
+  function setView(car){grid.classList.toggle('carousel',car);carwrap.classList.toggle('on',car);
+    vg.classList.toggle('active',!car);vc.classList.toggle('active',car);}
+  vg.addEventListener('click',()=>setView(false));
+  vc.addEventListener('click',()=>setView(true));
+  const step=()=>Math.min(window.innerWidth*0.72,420)+16;
+  document.getElementById('carprev').addEventListener('click',()=>grid.scrollBy({left:-step(),behavior:'smooth'}));
+  document.getElementById('carnext').addEventListener('click',()=>grid.scrollBy({left:step(),behavior:'smooth'}));
+  // lightbox
+  const lb=document.getElementById('lb'), lbimg=document.getElementById('lbimg'),
+        lbcap=document.getElementById('lbcap'), lbcount=document.getElementById('lbcount');
+  let cur=0;
+  const visible=()=>[...document.querySelectorAll('#grid figure:not(.hide)')];
+  function show(i){const v=visible();if(!v.length)return;cur=(i+v.length)%v.length;
+    const f=v[cur];lbimg.src=f.querySelector('img').src;
+    lbcap.textContent=f.querySelector('figcaption').textContent;
+    lbcount.textContent=(cur+1)+' / '+v.length;lb.classList.add('open');document.body.style.overflow='hidden';}
+  function close(){lb.classList.remove('open');document.body.style.overflow='';}
+  document.querySelectorAll('#grid figure').forEach(f=>f.addEventListener('click',()=>{
+    show(visible().indexOf(f));}));
+  document.getElementById('lbclose').addEventListener('click',close);
+  document.getElementById('lbprev').addEventListener('click',e=>{e.stopPropagation();show(cur-1)});
+  document.getElementById('lbnext').addEventListener('click',e=>{e.stopPropagation();show(cur+1)});
+  lb.addEventListener('click',e=>{if(e.target===lb)close()});
+  document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;
+    if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1);});
 </script>
 </body>
 </html>
