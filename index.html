@@ -206,9 +206,47 @@
 
   footer{padding:44px 5vw;text-align:center;color:#7a6a58;font-size:.88rem;line-height:1.9}
   footer b{color:var(--teak)}
+
+  /* ================= MOTION LAYER ================= */
+
+  /* hero parallax: the background is lifted out of <header> into its own
+     transformable layer. It is 118% tall so it can travel ~110px without
+     exposing an edge; that costs ~9% extra zoom, the price of parallax. */
+  header{overflow:hidden;background-image:none}
+  .hero-bg{position:absolute;left:0;right:0;top:-9%;height:118%;z-index:0;
+      background:url('assets/img/hero-exterior-placeholder.jpg') center/cover no-repeat;
+      will-change:transform;transform-origin:center 40%}
+  header::after{z-index:1}
+  .hero-inner{will-change:transform,opacity}
+
+  /* scroll progress rail */
+  #prog{position:fixed;top:0;left:0;right:0;height:3px;z-index:60;transform:scaleX(0);
+      transform-origin:0 50%;background:linear-gradient(90deg,var(--terracotta),var(--gold))}
+
+  /* nav shrink */
+  nav{transition:padding .28s ease,box-shadow .28s ease}
+  nav.small{padding:7px 5vw;box-shadow:0 4px 24px rgba(43,33,24,.10)}
+  nav.small .logo{font-size:1.06rem}
+  nav.small .logo span{opacity:.65}
+
+  /* pointer tilt — desktop only, phones never pay for this */
+  @media(pointer:fine){
+    .card,.q,.fact{transition:transform .35s cubic-bezier(.22,.61,.36,1),box-shadow .35s ease}
+    .card:hover,.q:hover,.fact:hover{box-shadow:0 22px 60px rgba(43,33,24,.22)}
+  }
+
+  /* carousel depth */
+  .grid.carousel{perspective:1400px;padding-top:30px}
+  .grid.carousel figure{transition:opacity .35s ease;transform-origin:center center;will-change:transform,opacity}
+  .grid.carousel figcaption{transition:opacity .35s ease}
+
+  @media(prefers-reduced-motion:reduce){
+    .hero-bg,.hero-inner{transform:none !important}
+  }
 </style>
 </head>
 <body>
+<div id="prog"></div>
 
 <nav class="sans">
   <a class="logo" href="/" onclick="window.scrollTo({top:0,behavior:'smooth'});history.pushState(null,'',window.location.pathname);return false;">Blessings Home<span>An EthicStay Property</span></a>
@@ -223,6 +261,7 @@
 </nav>
 
 <header id="top">
+  <div class="hero-bg"></div>
   <div class="hero-badge sans">★ 7BHK · Sleeps 14 · Pet-friendly</div>
   <div class="hero-inner">
     <div class="kicker sans">Changanassery · Kerala</div>
@@ -633,5 +672,128 @@
   document.addEventListener('keydown',e=>{if(!lb.classList.contains('open'))return;
     if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(cur-1);if(e.key==='ArrowRight')show(cur+1);});
 </script>
+
+<script type="module">
+/* ================= MOTION LAYER =================
+   Everything below is additive. If this module fails to load or throws, the
+   page keeps working exactly as it did before: no element is hidden in the
+   HTML itself, and the original .reveal IntersectionObserver above (with its
+   2.5s failsafe) is untouched and still the safety net.
+   Module scripts are deferred, so none of this blocks first paint. */
+import {animate, scroll, inView, stagger} from './assets/js/motion.esm.js';
+
+(function(){
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const EASE = [.22,.61,.36,1];
+  const header = document.querySelector('header');
+
+  /* ---- 1. hero parallax ------------------------------------------------ */
+  const heroRange = {target: header, offset: ['start start','end start']};
+  scroll(animate('.hero-bg', {y:[0,110], scale:[1,1.10]}, {ease:'linear'}), heroRange);
+  // headline holds full strength for the first third, then lifts away — fading it
+  // immediately made it muddy against the bright photo while still centre-screen
+  scroll(animate('.hero-inner', {y:[0,14,80], opacity:[1,1,0]},
+                 {ease:'linear', times:[0,.35,1]}), heroRange);
+
+  /* ---- 2. scroll progress rail ---------------------------------------- */
+  scroll(animate('#prog', {scaleX:[0,1]}, {ease:'linear'}));
+
+  /* ---- 3. nav shrink --------------------------------------------------- */
+  const nav = document.querySelector('nav');
+  addEventListener('scroll', () => nav.classList.toggle('small', scrollY > 120), {passive:true});
+
+  /* ---- 4. staggered group reveals -------------------------------------- */
+  function stagGroup(container, childSel, dist){
+    const g = document.querySelector(container); if(!g) return;
+    const kids = [...g.querySelectorAll(childSel)]; if(!kids.length) return;
+    g.classList.remove('reveal'); g.classList.add('show');   // container no longer fades as one slab
+    kids.forEach(k => {k.style.opacity='0'; k.style.transform='translateY('+dist+'px)';});
+    inView(g, () => {
+      animate(kids, {opacity:[0,1], transform:['translateY('+dist+'px)','translateY(0px)']},
+                    {delay: stagger(.075), duration:.7, ease:EASE});
+    }, {amount:.15});
+    setTimeout(() => kids.forEach(k => {        // failsafe: never leave anything invisible
+      if (k.style.opacity === '0'){k.style.opacity=''; k.style.transform='';}
+    }), 4000);
+  }
+  stagGroup('.facts', '.fact', 26);
+  stagGroup('.cards', '.card', 34);
+  stagGroup('.quotes','.q',    34);
+  stagGroup('.amen',  '.amen-col', 30);
+
+  /* ---- 5. facts count-up ----------------------------------------------- */
+  const facts = document.querySelector('.facts');
+  if (facts) inView(facts, () => {
+    facts.querySelectorAll('.n').forEach((n,i) => {
+      const to = parseInt(n.textContent,10); if (isNaN(to)) return;
+      n.textContent = '0';
+      animate(0, to, {duration:1.15, delay:.15+i*.075, ease:EASE,
+                      onUpdate:v => n.textContent = Math.round(v)});
+    });
+  }, {amount:.4});
+
+  /* ---- 6. gallery tiles fade + scale in -------------------------------- */
+  const figs = [...document.querySelectorAll('#grid figure')];
+  figs.forEach(f => {
+    f.style.opacity='0'; f.style.transform='scale(.94)';
+    inView(f, () => animate(f, {opacity:1, transform:'scale(1)'}, {duration:.55, ease:EASE}), {amount:.1});
+  });
+  // filtered-out tiles never enter view, so un-hide them when a tab reveals them
+  const unhide = () => figs.forEach(f => {
+    if (!f.classList.contains('hide') && f.style.opacity === '0'){f.style.opacity=''; f.style.transform='';}
+  });
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => setTimeout(unhide, 0)));
+  setTimeout(unhide, 4000);
+
+  /* ---- 7. pointer tilt (desktop only) ---------------------------------- */
+  if (matchMedia('(pointer:fine)').matches){
+    const tilt = (el, deg, lift) => {
+      el.addEventListener('pointermove', e => {
+        const r = el.getBoundingClientRect();
+        const x = (e.clientX - r.left)/r.width  - .5;
+        const y = (e.clientY - r.top )/r.height - .5;
+        el.style.transition = 'transform .08s linear';
+        el.style.transform  = 'perspective(1000px) rotateY('+(x*deg)+'deg) rotateX('+(-y*deg)+'deg) translateY('+lift+'px) scale(1.02)';
+      });
+      el.addEventListener('pointerleave', () => {
+        el.style.transition = 'transform .5s cubic-bezier(.22,.61,.36,1)';
+        el.style.transform  = '';
+      });
+    };
+    document.querySelectorAll('.card').forEach(el => tilt(el, 6, -6));
+    document.querySelectorAll('.q')   .forEach(el => tilt(el, 4, -4));
+    document.querySelectorAll('.fact').forEach(el => tilt(el, 8, -4));
+  }
+
+  /* ---- 8. carousel depth ------------------------------------------------ */
+  const grid = document.getElementById('grid');
+  let ticking = false;
+  function depth(){
+    ticking = false;
+    if (!grid.classList.contains('carousel')) return;
+    const r = grid.getBoundingClientRect(), cx = r.left + r.width/2;
+    grid.querySelectorAll('figure:not(.hide)').forEach(f => {
+      const fr = f.getBoundingClientRect();
+      const d  = Math.max(-1, Math.min(1, ((fr.left + fr.width/2) - cx) / (r.width*.5)));
+      const a  = Math.abs(d);
+      f.style.transform = 'rotateY('+(-d*18)+'deg) scale('+(1-a*.16)+') translateZ('+(-a*120)+'px)';
+      f.style.opacity   = String(1 - a*.4);
+      const cap = f.querySelector('figcaption'); if (cap) cap.style.opacity = String(1 - a*1.4);
+    });
+  }
+  const queue = () => {if(!ticking){ticking=true; requestAnimationFrame(depth);}};
+  grid.addEventListener('scroll', queue, {passive:true});
+  addEventListener('resize', queue);
+  document.getElementById('vc').addEventListener('click', () => setTimeout(depth, 60));
+  document.getElementById('vg').addEventListener('click', () => setTimeout(() => {
+    grid.querySelectorAll('figure').forEach(f => {
+      f.style.transform=''; f.style.opacity='';
+      const cap=f.querySelector('figcaption'); if(cap) cap.style.opacity='';
+    });
+  }, 0));
+})();
+</script>
+
 </body>
 </html>
