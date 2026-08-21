@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Ledger — Blessings Home</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📒</text></svg>">
+<style>
+  :root{
+    --terracotta:#b5502a; --terracotta-dark:#8f3c1e;
+    --cream:#faf6ef; --cream-dark:#f1e9db;
+    --teak:#5b3a24; --ink:#2b2118; --mut:#7a6a58;
+    --palm:#3e6b46; --gold:#c99a3f; --danger:#c0392b;
+    --radius:14px; --shadow:0 6px 24px rgba(43,33,24,.10);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:-apple-system,'Segoe UI',Helvetica,Arial,sans-serif;
+       background:var(--cream);color:var(--ink);font-size:15px;line-height:1.5}
+
+  header{background:var(--teak);color:var(--cream);padding:14px 18px;
+         display:flex;align-items:center;justify-content:space-between;gap:12px;
+         position:sticky;top:0;z-index:20}
+  header .brand{font-weight:700;font-size:1.02rem;letter-spacing:.2px}
+  header .brand small{display:block;font-weight:400;font-size:.66rem;opacity:.7;
+         letter-spacing:2px;text-transform:uppercase}
+  .btn{border:none;border-radius:30px;padding:9px 18px;font:inherit;font-size:.86rem;
+       cursor:pointer;background:var(--terracotta);color:#fff;white-space:nowrap}
+  .btn:hover{background:var(--terracotta-dark)}
+  .btn.ghost{background:transparent;color:var(--cream);border:1px solid rgba(250,246,239,.4)}
+
+  main{padding:18px;max-width:1100px;margin:0 auto}
+  .gate{text-align:center;padding:70px 20px}
+  .gate h1{font-size:1.4rem;margin-bottom:10px;color:var(--teak)}
+  .gate p{color:var(--mut);max-width:34em;margin:0 auto 24px;font-size:.94rem}
+
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+  .tile{background:#fff;border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+  .tile .k{font-size:.7rem;letter-spacing:1.2px;text-transform:uppercase;color:var(--mut)}
+  .tile .v{font-size:1.5rem;font-weight:700;color:var(--teak);margin-top:4px}
+  .tile.alert .v{color:var(--danger)}
+  .tile.good .v{color:var(--palm)}
+
+  section{margin-bottom:26px}
+  h2{font-size:1.02rem;color:var(--teak);margin-bottom:10px;
+     display:flex;align-items:center;gap:8px}
+  h2 .count{background:var(--cream-dark);color:var(--mut);font-size:.68rem;
+     padding:2px 9px;border-radius:12px;font-weight:600}
+
+  .card{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+  .row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+       padding:13px 16px;border-bottom:1px solid var(--cream-dark)}
+  .row:last-child{border-bottom:none}
+  .row .who{font-weight:600}
+  .row .meta{font-size:.79rem;color:var(--mut);margin-top:2px}
+  .row .amt{font-weight:700;white-space:nowrap;text-align:right}
+  .row.owed{border-left:4px solid var(--danger)}
+  .row.owed .amt{color:var(--danger)}
+  .tag{display:inline-block;font-size:.64rem;letter-spacing:.6px;text-transform:uppercase;
+       padding:2px 8px;border-radius:10px;font-weight:700;margin-left:6px;vertical-align:1px}
+  .t-airbnb{background:#fde8e6;color:#b5302a}
+  .t-direct{background:#e2ecdf;color:var(--palm)}
+  .t-agent{background:var(--cream-dark);color:var(--teak)}
+  .t-bad{background:#f6d9d5;color:var(--danger)}
+  .wa{color:var(--palm);text-decoration:none;font-size:.79rem;font-weight:600;white-space:nowrap}
+
+  .empty{padding:18px 16px;color:var(--mut);font-size:.88rem}
+  .tblwrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:.84rem;min-width:640px}
+  th{background:var(--teak);color:var(--cream);text-align:left;padding:9px 12px;
+     font-size:.7rem;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap}
+  td{padding:9px 12px;border-bottom:1px solid var(--cream-dark);vertical-align:top}
+  td.num{text-align:right;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+
+  .err{background:#fdeceb;border-left:4px solid var(--danger);padding:14px 16px;
+       border-radius:8px;color:#7d241b;font-size:.88rem;margin-bottom:18px}
+  .note{font-size:.76rem;color:var(--mut);margin-top:8px}
+  footer{text-align:center;color:var(--mut);font-size:.74rem;padding:24px 18px 40px}
+  @media(max-width:600px){
+    main{padding:14px}
+    .tile .v{font-size:1.3rem}
+    header .brand{font-size:.92rem}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Blessings Home<small>Ledger</small></div>
+  <div id="hdr-actions"></div>
+</header>
+
+<main>
+  <div id="gate" class="gate">
+    <h1>Private ledger</h1>
+    <p>Bookings, payments and expenses for Blessings Home.
+       Sign in with the owner's Google account to continue — no one else can load this data.</p>
+    <button class="btn" id="signin">Sign in with Google</button>
+    <div class="note" id="gate-note"></div>
+  </div>
+  <div id="app" hidden></div>
+</main>
+
+<footer>Blessings Home · An EthicStay Property · read-only view</footer>
+
+<script src="config.js"></script>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="app.js"></script>
+</body>
+</html>
