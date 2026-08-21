@@ -8,6 +8,21 @@ const CFG = window.ADMIN_CONFIG;
 let TOKEN = null;
 let DATA = null;          // {bookings, payments, expenses, meters, inventory}
 let VIEW = 'summary';
+let PERIOD = 'month';     // month | year | all
+
+const PERIODS = [{id:'month',label:'This month'},{id:'year',label:'This year'},{id:'all',label:'All time'}];
+function inPeriod(d){
+  if (!d) return false;
+  if (PERIOD === 'all') return true;
+  const t = today();
+  if (PERIOD === 'year') return d.getFullYear() === t.getFullYear();
+  return d.getMonth() === t.getMonth() && d.getFullYear() === t.getFullYear();
+}
+const periodWord = () => PERIOD === 'month' ? 'this month' : PERIOD === 'year' ? 'this year' : 'all time';
+const periodSub  = () => PERIOD === 'month' ? monthName(today())
+                       : PERIOD === 'year'  ? String(today().getFullYear()) : 'Everything on record';
+const segHTML = () => `<div class="seg">${PERIODS.map(p =>
+  `<button data-p="${p.id}" class="${p.id===PERIOD?'on':''}">${p.label}</button>`).join('')}</div>`;
 
 /* ---------- helpers ---------- */
 const $ = (id) => document.getElementById(id);
@@ -140,21 +155,21 @@ function viewSummary(){
   const t = today();
   const owed = DATA.bookings.filter(b => b._due > 0 && b._total > 0).sort((a,b)=>(a._in||0)-(b._in||0));
   const totalOwed = owed.reduce((s,b)=>s+b._due,0);
-  const inMonth = (d) => d && d.getMonth()===t.getMonth() && d.getFullYear()===t.getFullYear();
-  const rev = DATA.payments.filter(p=>inMonth(parseDate(p.date)) && isRent(p.type)).reduce((s,p)=>s+num(p.amount),0);
-  const exp = DATA.expenses.filter(e=>inMonth(parseDate(e.date))).reduce((s,e)=>s+num(e.amount),0);
+  const rev = DATA.payments.filter(p=>inPeriod(parseDate(p.date)) && isRent(p.type)).reduce((s,p)=>s+num(p.amount),0);
+  const exp = DATA.expenses.filter(e=>inPeriod(parseDate(e.date))).reduce((s,e)=>s+num(e.amount),0);
+  const bookingsIn = DATA.bookings.filter(b=>inPeriod(b._in)).length;
   const current  = DATA.bookings.filter(b=>b._in&&b._out&&b._in<=t&&b._out>=t);
   const upcoming = DATA.bookings.filter(b=>b._in&&b._in>t).sort((a,b)=>a._in-b._in);
   const missing  = DATA.bookings.filter(b=>!b._total).length;
 
   return `
     <div class="head"><h1>Summary</h1>
-      <div class="rt"><span class="sub">${monthName(t)}</span><button id="refresh">↻ Refresh</button></div></div>
+      <div class="rt">${segHTML()}<button id="refresh">↻ Refresh</button></div></div>
     <div class="tiles">
-      <div class="tile ${totalOwed>0?'alert':'good'}"><div class="k">Outstanding</div><div class="v">${money(totalOwed)}</div><div class="s">${owed.length} booking${owed.length===1?'':'s'}</div></div>
-      <div class="tile"><div class="k">Received this month</div><div class="v">${money(rev)}</div></div>
-      <div class="tile"><div class="k">Spent this month</div><div class="v">${money(exp)}</div></div>
-      <div class="tile ${rev-exp>=0?'good':'alert'}"><div class="k">Net this month</div><div class="v">${money(rev-exp)}</div></div>
+      <div class="tile ${totalOwed>0?'alert':'good'}"><div class="k">Outstanding now</div><div class="v">${money(totalOwed)}</div><div class="s">${owed.length} booking${owed.length===1?'':'s'} · not period-filtered</div></div>
+      <div class="tile"><div class="k">Received</div><div class="v">${money(rev)}</div><div class="s">${periodSub()}</div></div>
+      <div class="tile"><div class="k">Spent</div><div class="v">${money(exp)}</div><div class="s">${periodSub()}</div></div>
+      <div class="tile ${rev-exp>=0?'good':'alert'}"><div class="k">Net</div><div class="v">${money(rev-exp)}</div><div class="s">${bookingsIn} booking${bookingsIn===1?'':'s'} ${periodWord()}</div></div>
     </div>
     <div class="cols wide-left">
       <section><h2>Money due <span class="count">${owed.length}</span></h2>
@@ -318,6 +333,9 @@ function wireFilters(){
     inp.oninput = apply;
     selIds.forEach(s => { const el = $(s.id); if (el) el.onchange = apply; });
   };
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
+    PERIOD = b.dataset.p; render();
+  });
   filter('q','btbody',[{id:'fsrc',attr:'src'},{id:'fst',attr:'st'}]);
   filter('qi','itbody',[{id:'fcat',attr:'cat'}]);
 }
