@@ -148,26 +148,32 @@ function viewSummary(){
   const missing  = DATA.bookings.filter(b=>!b._total).length;
 
   return `
-    <div class="head"><h1>Summary</h1><div class="sub">${monthName(t)}</div></div>
+    <div class="head"><h1>Summary</h1>
+      <div class="rt"><span class="sub">${monthName(t)}</span><button id="refresh">↻ Refresh</button></div></div>
     <div class="tiles">
       <div class="tile ${totalOwed>0?'alert':'good'}"><div class="k">Outstanding</div><div class="v">${money(totalOwed)}</div><div class="s">${owed.length} booking${owed.length===1?'':'s'}</div></div>
       <div class="tile"><div class="k">Received this month</div><div class="v">${money(rev)}</div></div>
       <div class="tile"><div class="k">Spent this month</div><div class="v">${money(exp)}</div></div>
       <div class="tile ${rev-exp>=0?'good':'alert'}"><div class="k">Net this month</div><div class="v">${money(rev-exp)}</div></div>
     </div>
-    <section><h2>Money due <span class="count">${owed.length}</span></h2>
-      ${list(owed, b=>bookingRow(b,true), 'Nothing outstanding. 🎉')}</section>
-    <section><h2>Staying now <span class="count">${current.length}</span></h2>
-      ${list(current, b=>bookingRow(b,false), 'Nobody in the house today.')}</section>
-    <section><h2>Upcoming <span class="count">${upcoming.length}</span></h2>
-      ${list(upcoming.slice(0,6), b=>bookingRow(b,false), 'No bookings on the calendar yet.')}</section>
+    <div class="cols wide-left">
+      <section><h2>Money due <span class="count">${owed.length}</span></h2>
+        ${list(owed, b=>bookingRow(b,true), 'Nothing outstanding. 🎉')}</section>
+      <div>
+        <section><h2>Staying now <span class="count">${current.length}</span></h2>
+          ${list(current, b=>bookingRow(b,false), 'Nobody in the house today.')}</section>
+        <section><h2>Upcoming <span class="count">${upcoming.length}</span></h2>
+          ${list(upcoming.slice(0,6), b=>bookingRow(b,false), 'No bookings on the calendar yet.')}</section>
+      </div>
+    </div>
     ${missing?`<p class="note">⚠️ ${missing} booking${missing>1?'s have':' has'} no agreed total yet — excluded from the outstanding figure.</p>`:''}`;
 }
 
 function viewBookings(){
   const rows = DATA.bookings.slice().sort((a,b)=>(b._in||0)-(a._in||0));
   return `
-    <div class="head"><h1>Bookings</h1><div class="sub">${rows.length} in total</div></div>
+    <div class="head"><h1>Bookings</h1>
+      <div class="rt"><span class="sub">${rows.length} in total</span><button id="refresh">↻ Refresh</button></div></div>
     <div class="filters">
       <input id="q" placeholder="Search guest, ID, city, unit…">
       <select id="fsrc"><option value="">All sources</option><option>Direct</option><option>Airbnb</option><option>Agent</option></select>
@@ -207,13 +213,15 @@ function viewMoney(){
   const exp = DATA.expenses.slice().sort((a,b)=>(parseDate(b.date)||0)-(parseDate(a.date)||0));
 
   return `
-    <div class="head"><h1>Income &amp; expenses</h1><div class="sub">all time</div></div>
+    <div class="head"><h1>Income &amp; expenses</h1>
+      <div class="rt"><span class="sub">all time</span><button id="refresh">↻ Refresh</button></div></div>
     <div class="tiles">
       <div class="tile good"><div class="k">Total received</div><div class="v">${money(totIn)}</div><div class="s">${DATA.payments.length} payments</div></div>
       <div class="tile"><div class="k">Total spent</div><div class="v">${money(totOut)}</div><div class="s">${DATA.expenses.length} expenses</div></div>
       <div class="tile ${totIn-totOut>=0?'good':'alert'}"><div class="k">Net</div><div class="v">${money(totIn-totOut)}</div></div>
     </div>
 
+    <div class="cols">
     <section><h2>By month</h2>
       <div class="card tblwrap"><table><thead><tr>
         <th>Month</th><th class="num">In</th><th class="num">Out</th><th class="num">Net</th>
@@ -233,6 +241,7 @@ function viewMoney(){
           <div class="meta">${shortDate(parseDate(p.date))}${p.mode_of_pay?' · '+esc(p.mode_of_pay):''}${p.booking_id?' · '+esc(p.booking_id):''}</div>
         </div><div class="amt">${money(num(p.amount))}</div></div>`;
       }, 'No payments recorded yet.')}</section>
+    </div>
 
     <section><h2>Expenses out <span class="count">${exp.length}</span></h2>
       ${list(exp, e => `<div class="row"><div>
@@ -247,7 +256,8 @@ function viewInventory(){
   const cats = [...new Set(inv.map(i=>i.category).filter(Boolean))];
   const value = inv.reduce((s,i)=>s+num(i.cost_rs),0);
   return `
-    <div class="head"><h1>Inventory</h1><div class="sub">${inv.length} line${inv.length===1?'':'s'}</div></div>
+    <div class="head"><h1>Inventory</h1>
+      <div class="rt"><span class="sub">${inv.length} line${inv.length===1?'':'s'}</span><button id="refresh">↻ Refresh</button></div></div>
     <div class="tiles">
       <div class="tile"><div class="k">Recorded lines</div><div class="v">${inv.length}</div></div>
       <div class="tile"><div class="k">Categories</div><div class="v">${cats.length}</div></div>

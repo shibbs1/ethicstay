@@ -44,13 +44,23 @@
   aside .foot button{background:none;border:1px solid rgba(250,246,239,.35);color:var(--cream);
         border-radius:20px;padding:6px 14px;font:inherit;font-size:.72rem;cursor:pointer;margin-bottom:8px}
 
-  main{margin-left:var(--side);flex:1;padding:22px 26px 60px;max-width:1180px}
-  .head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;margin-bottom:18px}
-  .head h1{font-size:1.22rem;color:var(--teak);font-weight:700}
+  main{margin-left:var(--side);flex:1;min-width:0;padding:20px 28px 60px;max-width:none}
+  /* panels sit side by side on wide screens so the right half carries weight */
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start}
+  .cols.wide-left{grid-template-columns:1.35fr 1fr}
+  @media(max-width:1180px){.cols,.cols.wide-left{grid-template-columns:1fr}}
+  .head{display:flex;align-items:center;justify-content:space-between;gap:14px;
+        margin:-20px -28px 20px;padding:16px 28px;background:#fff;
+        border-bottom:1px solid var(--cream-dark);position:sticky;top:0;z-index:10}
+  .head h1{font-size:1.18rem;color:var(--teak);font-weight:700}
   .head .sub{font-size:.78rem;color:var(--mut)}
+  .head .rt{display:flex;align-items:center;gap:12px}
+  .head .rt button{background:transparent;border:1px solid var(--cream-dark);color:var(--teak);
+        border-radius:20px;padding:7px 15px;font:inherit;font-size:.78rem;cursor:pointer}
+  .head .rt button:hover{border-color:var(--terracotta);color:var(--terracotta)}
 
   /* ---------- pieces ---------- */
-  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:22px}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:22px}
   .tile{background:#fff;border-radius:var(--radius);padding:15px 17px;box-shadow:var(--shadow)}
   .tile .k{font-size:.67rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut)}
   .tile .v{font-size:1.42rem;font-weight:700;color:var(--teak);margin-top:3px}
@@ -82,7 +92,7 @@
 
   .empty{padding:18px 16px;color:var(--mut);font-size:.88rem}
   .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
-  table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:620px}
+  table{width:100%;border-collapse:collapse;font-size:.83rem;min-width:560px}
   th{background:var(--teak);color:var(--cream);text-align:left;padding:9px 12px;
      font-size:.68rem;letter-spacing:.8px;text-transform:uppercase;white-space:nowrap;position:sticky;top:0}
   td{padding:9px 12px;border-bottom:1px solid var(--cream-dark);vertical-align:top}
@@ -119,7 +129,8 @@
     nav.side button.on{border-left:none;border-top-color:var(--gold);background:rgba(250,246,239,.10)}
     nav.side .ic{font-size:1.15rem;width:auto}
     nav.side .pill{position:absolute;transform:translate(16px,-10px);margin:0}
-    main{margin-left:0;padding:16px 14px calc(var(--bar) + 26px);max-width:none}
+    main{margin-left:0;padding:14px 14px calc(var(--bar) + 26px);max-width:none}
+    .head{margin:-14px -14px 16px;padding:13px 16px}
     .head h1{font-size:1.08rem}
     .tile .v{font-size:1.25rem}
   }
@@ -140,7 +151,6 @@
     <div class="brand"><b>Blessings Home</b><span>Ledger</span></div>
     <nav class="side" id="nav"></nav>
     <div class="foot">
-      <button id="refresh">↻ Refresh</button>
       <div>Read-only view</div>
     </div>
   </aside>
