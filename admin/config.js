@@ -10,6 +10,7 @@ window.ADMIN_CONFIG = {
     bookings: 'Bookings!A:Q',
     payments: 'Payments!A:H',
     expenses: 'Expenses!A:I',
-    meters:   "'Meter Readings'!A:E"
+    meters:   "'Meter Readings'!A:E",
+    inventory: 'Inventory!A:H'
   }
 };
