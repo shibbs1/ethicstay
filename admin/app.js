@@ -296,11 +296,20 @@ function viewMoney(){
     </div>
 
     <section><h2>Expenses out <span class="count">${exp.length}</span></h2>
-      ${list(exp, e => `<div class="row"><div>
+      <div class="filters">
+        <input id="qe" placeholder="Search expense, person, booking…">
+        <select id="fecat"><option value="">All categories</option>${
+          [...new Set(exp.map(e=>e.category).filter(Boolean))].sort().map(c=>`<option>${esc(c)}</option>`).join('')}</select>
+        <span class="ftot" id="etot"></span>
+      </div>
+      <div class="card" id="elist">${exp.length ? exp.map(e => `<div class="row"
+        data-s="${esc((e.item+' '+e.category+' '+e.person_responsible+' '+e.booking_id).toLowerCase())}"
+        data-cat="${esc(e.category)}" data-amt="${num(e.amount)}"><div>
         <div class="who">${esc(e.item || e.category || 'Expense')}
           ${e.category?`<span class="tag ${String(e.category).toLowerCase()==='inventory'?'t-inv':'t-agent'}">${esc(e.category)}</span>`:''}</div>
         <div class="meta">${shortDate(parseDate(e.date))}${e.person_responsible?' · '+esc(e.person_responsible):''}${e.booking_id?' · charged to '+esc(e.booking_id):''}${String(e.bill_present).toLowerCase()==='yes'?' · 🧾 bill':''}</div>
-      </div><div class="amt">${money(num(e.amount))}</div></div>`, 'No expenses recorded yet.')}</section>`;
+      </div><div class="amt">${money(num(e.amount))}</div></div>`).join('') : '<div class="empty">No expenses recorded yet.</div>'}</div>
+    </section>`;
 }
 
 function viewInventory(){
@@ -370,6 +379,26 @@ function wireFilters(){
     inp.oninput = apply;
     selIds.forEach(s => { const el = $(s.id); if (el) el.onchange = apply; });
   };
+  // card lists (expenses): search + category, with a live total of what is shown
+  (function(){
+    const inp=$('qe'), sel=$('fecat'), listEl=$('elist'), tot=$('etot');
+    if (!listEl) return;
+    const apply = () => {
+      const q=(inp?.value||'').trim().toLowerCase(), c=(sel?.value||'').toLowerCase();
+      let n=0, sum=0;
+      listEl.querySelectorAll('.row').forEach(r => {
+        const ok = (!q || (r.dataset.s||'').includes(q)) &&
+                   (!c || (r.dataset.cat||'').toLowerCase() === c);
+        r.style.display = ok ? '' : 'none';
+        if (ok) { n++; sum += Number(r.dataset.amt||0); }
+      });
+      if (tot) tot.innerHTML = `${money(sum)} <span>across ${n} item${n===1?'':'s'}</span>`;
+    };
+    if (inp) inp.oninput = apply;
+    if (sel) sel.onchange = apply;
+    apply();
+  })();
+
   document.querySelectorAll('.seg button').forEach(b => b.onclick = () => {
     PERIOD = b.dataset.p; render();
   });
