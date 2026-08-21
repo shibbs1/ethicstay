@@ -58,6 +58,15 @@ function signIn(){
   }).requestAccessToken();
 }
 
+/* Access tokens expire after about an hour. Rather than showing a bare 401,
+   drop back to the gate and let the user sign in again in one click. */
+function expired(){
+  TOKEN = null;
+  $('shell').hidden = true;
+  $('gate').hidden = false;
+  $('gate-note').textContent = 'Your session timed out — sign in again to reload the ledger.';
+}
+
 /* ---------- data ---------- */
 async function load(){
   $('view').innerHTML = '<p class="empty">Loading…</p>';
@@ -65,6 +74,7 @@ async function load(){
   try {
     const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CFG.SHEET_ID}/values:batchGet?${ranges}`,
                             { headers:{ Authorization:'Bearer ' + TOKEN } });
+    if (res.status === 401) return expired();   // token lasts ~1 hour
     if (!res.ok) throw new Error(res.status === 403
       ? 'Google refused the request (403). The signed-in account may not have access to this Sheet.'
       : `Sheets API ${res.status}`);
