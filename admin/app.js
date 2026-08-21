@@ -57,26 +57,63 @@ function toObjects(values){
 const RENT = ['advance','balance','extra'];
 const isRent = (t) => RENT.includes(String(t).trim().toLowerCase());
 
-/* ---------- auth ---------- */
-function signIn(){
-  google.accounts.oauth2.initTokenClient({
+/* ---------- auth ----------
+   The token is cached in sessionStorage so a page refresh does not force a new
+   sign-in. sessionStorage is per-tab and is wiped when the tab closes, and the
+   token is short-lived and scoped to read one spreadsheet — a reasonable trade
+   for not re-authenticating on every reload. On boot we also try a SILENT token
+   request first, so returning users usually skip the button entirely. */
+const KEY = 'bh_ledger_token';
+
+function saveToken(tok, expiresIn){
+  TOKEN = tok;
+  try { sessionStorage.setItem(KEY, JSON.stringify({
+    t: tok, exp: Date.now() + (Number(expiresIn || 3600) - 60) * 1000   // 60s safety margin
+  })); } catch(e) {}
+}
+function cachedToken(){
+  try {
+    const c = JSON.parse(sessionStorage.getItem(KEY) || 'null');
+    return (c && c.exp > Date.now()) ? c.t : null;
+  } catch(e) { return null; }
+}
+function clearToken(){ TOKEN = null; try { sessionStorage.removeItem(KEY); } catch(e) {} }
+
+function enter(){
+  $('gate').hidden = true;
+  $('shell').hidden = false;
+  buildNav();
+  load();
+}
+
+let CLIENT = null;
+function tokenClient(){
+  if (!CLIENT) CLIENT = google.accounts.oauth2.initTokenClient({
     client_id: CFG.CLIENT_ID,
     scope: CFG.SCOPE,
     callback: (r) => {
-      if (r.error) { $('gate-note').textContent = 'Sign-in failed: ' + r.error; return; }
-      TOKEN = r.access_token;
-      $('gate').hidden = true;
-      $('shell').hidden = false;
-      buildNav();
-      load();
-    }
-  }).requestAccessToken();
+      if (r.error) {
+        if (!SILENT) $('gate-note').textContent = 'Sign-in failed: ' + r.error;
+        SILENT = false;
+        return;
+      }
+      SILENT = false;
+      saveToken(r.access_token, r.expires_in);
+      enter();
+    },
+    error_callback: () => { SILENT = false; }   // silent attempt failed — leave the gate up
+  });
+  return CLIENT;
 }
+
+let SILENT = false;
+function signIn(){ SILENT = false; tokenClient().requestAccessToken({prompt: 'consent'}); }
+function signInSilently(){ SILENT = true; tokenClient().requestAccessToken({prompt: ''}); }
 
 /* Access tokens expire after about an hour. Rather than showing a bare 401,
    drop back to the gate and let the user sign in again in one click. */
 function expired(){
-  TOKEN = null;
+  clearToken();
   $('shell').hidden = true;
   $('gate').hidden = false;
   $('gate-note').textContent = 'Your session timed out — sign in again to reload the ledger.';
@@ -345,4 +382,15 @@ $('signin').onclick = () => {
   if (!window.google?.accounts?.oauth2) { $('gate-note').textContent = 'Google sign-in is still loading — try again in a moment.'; return; }
   signIn();
 };
+
+(function boot(){
+  const cached = cachedToken();
+  if (cached) { TOKEN = cached; enter(); return; }       // refresh: straight back in
+  // otherwise wait for the Google library, then try without showing a popup
+  let tries = 0;
+  const t = setInterval(() => {
+    if (window.google?.accounts?.oauth2) { clearInterval(t); signInSilently(); }
+    else if (++tries > 40) clearInterval(t);             // ~8s, give up quietly
+  }, 200);
+})();
 document.addEventListener('click', e => { if (e.target.id === 'refresh') load(); });
