@@ -7,7 +7,7 @@ window.ADMIN_CONFIG = {
   SHEET_ID:  '1SDL_3CsOomn4MZ5q7pG620SYBWdfm2wvVJfrQU8mYKU',
   SCOPE:     'https://www.googleapis.com/auth/spreadsheets.readonly',
   TABS: {
-    bookings: 'Bookings!A:Q',
+    bookings: 'Bookings!A:R',
     payments: 'Payments!A:H',
     expenses: 'Expenses!A:I',
     meters:   "'Meter Readings'!A:E",

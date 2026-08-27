@@ -180,7 +180,7 @@ function bookingRow(b, showDue){
     <div>
       <div class="who">${esc(b.guest_name)}${srcTag(b.source)}${b._status.toLowerCase()==='bad debt'?'<span class="tag t-bad">bad debt</span>':''}</div>
       <div class="meta">${esc(b.booking_id)} · ${esc(b.unit)} · ${fmtDate(b._in)}${b._out?' → '+fmtDate(b._out):''}
-        ${late?` · <strong style="color:var(--danger)">${daysAgo(b._in)} days ago</strong>`:''}${b.city?' · '+esc(b.city):''}</div>
+        ${late?` · <strong style="color:var(--danger)">${daysAgo(b._in)} days ago</strong>`:''}${b.city?' · '+esc(b.city):''}${b.location?' · '+esc(b.location):''}</div>
       ${showDue ? `<div class="meta">${waLink(b)}</div>` : ''}
     </div>
     <div class="amt">${showDue ? money(b._due) : (b._total ? money(b._total) : '—')}</div>
@@ -227,20 +227,21 @@ function viewBookings(){
     <div class="head"><h1>Bookings</h1>
       <div class="rt"><span class="sub">${rows.length} in total</span><button id="refresh">↻ Refresh</button></div></div>
     <div class="filters">
-      <input id="q" placeholder="Search guest, ID, city, unit…">
+      <input id="q" placeholder="Search guest, ID, city, country, unit…">
       <select id="fsrc"><option value="">All sources</option><option>Direct</option><option>Airbnb</option><option>Agent</option></select>
       <select id="fst"><option value="">All statuses</option><option>Confirmed</option><option>Completed</option><option>Staying</option><option>Bad debt</option><option>Cancelled</option><option>Enquiry</option></select>
     </div>
     <div class="card tblwrap">
       <table><thead><tr>
-        <th>ID</th><th>Guest</th><th>Unit</th><th>In</th><th>Out</th><th>Source</th>
+        <th>ID</th><th>Guest</th><th>From</th><th>Unit</th><th>In</th><th>Out</th><th>Source</th>
         <th class="num">Total</th><th class="num">Paid</th><th class="num">Due</th><th>Status</th>
       </tr></thead><tbody id="btbody">${rows.map(bookingTr).join('')}</tbody></table>
     </div>`;
 }
-const bookingTr = (b) => `<tr data-s="${esc((b.guest_name+' '+b.booking_id+' '+b.city+' '+b.unit).toLowerCase())}"
+const bookingTr = (b) => `<tr data-s="${esc((b.guest_name+' '+b.booking_id+' '+b.city+' '+(b.location||'')+' '+b.unit).toLowerCase())}"
     data-src="${esc(b.source)}" data-st="${esc(b._status)}">
-  <td>${esc(b.booking_id)}</td><td>${esc(b.guest_name)}</td><td>${esc(b.unit)}</td>
+  <td>${esc(b.booking_id)}</td><td>${esc(b.guest_name)}</td>
+  <td>${esc([b.city, b.location].filter(Boolean).join(' · ')) || '—'}</td><td>${esc(b.unit)}</td>
   <td>${shortDate(b._in)}</td><td>${shortDate(b._out)}</td><td>${esc(b.source)}</td>
   <td class="num">${b._total?money(b._total):'—'}</td>
   <td class="num">${b._paid?money(b._paid):'—'}</td>
