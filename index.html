@@ -191,7 +191,12 @@
   .q{background:#fff;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column}
   .q::before{content:'“';font-size:4rem;color:var(--gold);position:absolute;top:-6px;left:16px;opacity:.5}
   .q p{font-style:italic;line-height:1.65;margin-bottom:14px;padding-top:14px}
-  .q .who{display:flex;align-items:flex-start;gap:12px;margin-top:auto;padding-top:14px;min-height:96px}
+  .q .who{display:flex;align-items:flex-start;gap:12px;margin-top:auto;padding-top:14px}
+  /* line up tags, quote and name across each row of cards, without padding short cards */
+  @supports (grid-template-rows: subgrid){
+    .q{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;padding-bottom:22px}
+    .q .who{margin-top:0}
+  }
   .q .who img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--cream-dark)}
   .q .who .n{font-size:.9rem;color:var(--terracotta);font-weight:700}
   .q .who .m{font-size:.78rem;color:#7a6a58}
@@ -582,8 +587,10 @@
   </div>
   <div class="quotes reveal">
     <div class="q">
-      <div class="qtags sans"><span class="t-fn">💒 Wedding Reception Guests</span><span class="t-stay">Full Villa</span><span class="t-ch">Airbnb Guest</span></div>
-      <div class="stars" aria-label="5 out of 5 stars">★★★★★</div>
+      <div class="qhead">
+        <div class="qtags sans"><span class="t-fn">💒 Wedding Reception Guests</span><span class="t-stay">Full Villa</span><span class="t-ch">Airbnb Guest</span></div>
+        <div class="stars" aria-label="5 out of 5 stars">★★★★★</div>
+      </div>
       <p>It was a very good experience.</p>
       <div class="who sans">
         <img src="assets/img/guests/chandrasekhar.jpg" alt="Chandrasekhar">
