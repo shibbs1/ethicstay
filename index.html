@@ -203,6 +203,9 @@
   .q .who .av{width:46px;height:46px;border-radius:50%;flex-shrink:0;background:var(--terracotta);color:#fff;
       display:flex;align-items:center;justify-content:center;font-weight:700;font-size:1.1rem;border:2px solid var(--cream-dark)}
   .q .stars{color:var(--gold);letter-spacing:2px;font-size:.95rem;margin-top:6px}
+  /* reported (spoken) feedback — no quotation mark, since these are not the guest's exact written words */
+  .q.reported::before{content:''}
+  .q.reported p{font-style:normal;padding-top:0}
   .q .badge{display:inline-block;background:var(--palm);color:#fff;font-size:.68rem;padding:2px 10px;border-radius:12px;margin-left:6px;vertical-align:middle}
   .qtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding-top:8px}
   .qtags span{font-size:.66rem;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:12px;font-weight:600}
@@ -595,6 +598,14 @@
       <div class="who sans">
         <img src="assets/img/guests/chandrasekhar.jpg" alt="Chandrasekhar">
         <div><div class="n">Chandrasekhar</div><div class="m">Thottakkad · 9 friends in town for his wedding reception · full villa, Sep 2026</div></div>
+      </div>
+    </div>
+    <div class="q reported">
+      <div class="qtags sans"><span class="t-fn">💒 Marriage Function</span><span class="t-fn">🇨🇦 Canada</span><span class="t-stay">Full Villa</span><span class="t-ch">Direct Booking</span></div>
+      <p>Happy with all the arrangements — and thankful for the relaxed checkout on the wedding day, at no extra charge.</p>
+      <div class="who sans">
+        <div class="av" aria-hidden="true">E</div>
+        <div><div class="n">Edwin &amp; friends</div><div class="m">Canada · wedding party of 9 · full villa, Sep 2026 · told us by phone</div></div>
       </div>
     </div>
     <div class="q">
