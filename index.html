@@ -207,8 +207,12 @@
   .q.reported::before{content:''}
   .q.reported p{font-style:normal;padding-top:0}
   .q .badge{display:inline-block;background:var(--palm);color:#fff;font-size:.68rem;padding:2px 10px;border-radius:12px;margin-left:6px;vertical-align:middle}
-  .qtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding-top:8px}
-  .qtags span{font-size:.66rem;letter-spacing:.5px;text-transform:uppercase;padding:3px 10px;border-radius:12px;font-weight:600}
+  .qtags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;padding-top:8px;align-items:center}
+  /* inline-flex + fixed min-height so a tag with an emoji is the same height,
+     and sits on the same centre line, as one without */
+  .qtags span{display:inline-flex;align-items:center;min-height:22px;line-height:1;
+              font-size:.66rem;letter-spacing:.5px;text-transform:uppercase;
+              padding:0 10px;border-radius:12px;font-weight:600}
   .t-fn{background:#f6e3d3;color:var(--terracotta-dark)}
   .t-stay{background:#e2ecdf;color:var(--palm)}
   .t-ch{background:var(--cream-dark);color:var(--teak)}
