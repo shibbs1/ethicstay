@@ -187,16 +187,21 @@
       display:flex;align-items:center;justify-content:center;color:#7a6a58;font-size:.95rem;text-align:center;padding:20px}
 
   /* ---------- testimonials ---------- */
-  .quotes{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:24px;margin-top:40px}
-  .q{background:#fff;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);position:relative;display:flex;flex-direction:column}
+  /* the cards run in one horizontal lane that scrolls itself; it is a real
+     scroll container, so a swipe or trackpad flick works as well */
+  .quotes{margin-top:40px;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-ms-overflow-style:none;
+      -webkit-overflow-scrolling:touch;
+      -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
+              mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%)}
+  .quotes::-webkit-scrollbar{display:none}
+  /* padding, not margin: the lane clips vertically, and the big quote glyph
+     and the card shadow both sit outside the card box */
+  .qtrack{display:flex;align-items:stretch;gap:24px;width:max-content;padding:14px 0 18px}
+  .q{background:#fff;border-radius:var(--radius);padding:28px;box-shadow:var(--shadow);position:relative;
+      display:flex;flex-direction:column;flex:0 0 min(340px,78vw)}
   .q::before{content:'“';font-size:4rem;color:var(--gold);position:absolute;top:-6px;left:16px;opacity:.5}
   .q p{font-style:italic;line-height:1.65;margin-bottom:14px;padding-top:14px}
   .q .who{display:flex;align-items:flex-start;gap:12px;margin-top:auto;padding-top:14px}
-  /* line up tags, quote and name across each row of cards, without padding short cards */
-  @supports (grid-template-rows: subgrid){
-    .q{display:grid;grid-row:span 3;grid-template-rows:subgrid;row-gap:0;padding-bottom:22px}
-    .q .who{margin-top:0}
-  }
   .q .who img{width:46px;height:46px;border-radius:50%;object-fit:cover;border:2px solid var(--cream-dark)}
   .q .who .n{font-size:.9rem;color:var(--terracotta);font-weight:700}
   .q .who .m{font-size:.78rem;color:#7a6a58}
@@ -705,6 +710,61 @@
   document.querySelectorAll('.reveal').forEach(el=>io.observe(el));
   // fallback: never leave content hidden (prerender/reader contexts)
   setTimeout(()=>document.querySelectorAll('.reveal:not(.show)').forEach(el=>el.classList.add('show')),2500);
+  // ---- Guest Words: self-scrolling card lane ----------------------------
+  // Runs before the motion module so the staggered reveal picks up every card.
+  (function(){
+    const box = document.querySelector('.quotes');
+    if (!box) return;
+    const track = document.createElement('div');
+    track.className = 'qtrack';
+    while (box.firstElementChild) track.appendChild(box.firstElementChild);
+    box.appendChild(track);
+    box.setAttribute('role','region');
+    box.setAttribute('aria-label','Guest reviews');
+
+    // a second copy of the run is what makes the loop seamless: when the
+    // scroll position wraps by exactly one run, the pixels do not change
+    const first = track.children.length;
+    [...track.children].forEach(card => {
+      const copy = card.cloneNode(true);
+      copy.setAttribute('aria-hidden','true');
+      track.appendChild(copy);
+    });
+    // distance from a card to its own copy. Not scrollWidth/2 — that leaves out
+    // one gap and the loop would jump half a gap every time it wraps.
+    const run = () => track.children[first].offsetLeft - track.children[0].offsetLeft;
+
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;  // still swipeable, just not self-moving
+
+    const SPEED = 0.4;                      // px per 60fps frame, ~25px/s
+    let paused = false, last = 0, resume = 0;
+    box.scrollLeft = run();                 // start inside the copy so it can drift right forever
+
+    function tick(now){
+      requestAnimationFrame(tick);
+      const dt = last ? Math.min(now - last, 60) : 16;
+      last = now;
+      if (paused || document.hidden || box.scrollWidth <= box.clientWidth) return;
+      box.scrollLeft -= SPEED * dt / 16;    // content travels left to right
+      if (box.scrollLeft <= 0) box.scrollLeft += run();
+    }
+    requestAnimationFrame(tick);
+
+    const hold = () => {paused = true; clearTimeout(resume);};
+    const release = (wait) => {clearTimeout(resume); resume = setTimeout(() => {paused = false; last = 0;}, wait);};
+    box.addEventListener('mouseenter', hold);
+    box.addEventListener('mouseleave', () => release(0));
+    box.addEventListener('focusin', hold);
+    box.addEventListener('focusout', () => release(0));
+    box.addEventListener('touchstart', hold, {passive:true});
+    box.addEventListener('touchend', () => release(2500), {passive:true});
+    // a manual flick can run off either end; wrap it back into the loop
+    box.addEventListener('scroll', () => {
+      if (box.scrollLeft <= 0) box.scrollLeft += run();
+      else if (box.scrollLeft >= track.scrollWidth - box.clientWidth - 1) box.scrollLeft -= run();
+    }, {passive:true});
+  })();
+
   // gallery tabs
   document.querySelectorAll('.tab').forEach(t=>t.addEventListener('click',()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
