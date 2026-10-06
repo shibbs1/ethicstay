@@ -302,6 +302,19 @@ function payLine(p){
   </div>`;
 }
 
+/* ---------- foldable panels ----------
+   The thread can run to dozens of messages, so the long panels fold. Which ones
+   are folded is remembered per browser, not per booking: the preference is
+   "I want to see conversations" rather than "I want to see this one". */
+const FOLD_KEY = 'bh_fold';
+const foldAll = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY) || '{}'); } catch(e){ return {}; } };
+const isOpen  = (id, dflt) => { const f = foldAll(); return id in f ? !!f[id] : dflt; };
+function setFold(id, open){
+  try { const f = foldAll(); f[id] = open; localStorage.setItem(FOLD_KEY, JSON.stringify(f)); } catch(e){}
+}
+const foldHead = (title, count) =>
+  `<summary><h3>${title}${count != null ? ` <span class="count">${count}</span>` : ''}</h3><span class="caret">▸</span></summary>`;
+
 /* ---------- the conversation, as it happened ----------
    Rows come from the Conversations tab: Booking ID | When | Who | Side | Channel | Message.
    Side decides which way a bubble faces; "system" is for the things that are not
@@ -457,8 +470,8 @@ function viewBookingDetail(b){
       </div>
     </div>
 
-    <section class="panel chatwrap">
-      <h3>How this booking happened <span class="count">${chat.length}</span></h3>
+    <details class="panel chatwrap" id="fold-chat" ${isOpen('fold-chat', true) ? 'open' : ''}>
+      ${foldHead('How this booking happened', chat.length)}
       ${chat.length
         ? `<div class="chat">${chatHTML(chat)}</div>`
         : `<div class="empty" style="padding:4px 0">No messages logged for this booking yet — add rows to the
@@ -466,12 +479,12 @@ function viewBookingDetail(b){
              and the whole exchange appears here.</div>`}
       ${wa ? `<p class="note">Logged by hand from the chat — WhatsApp itself cannot be read from here.
          <strong>Open the WhatsApp chat</strong> above goes to the live conversation.</p>` : ''}
-    </section>
+    </details>
 
-    ${b.notes ? `<section class="panel">
-      <h3>Ledger notes</h3>
+    ${b.notes ? `<details class="panel" id="fold-notes" ${isOpen('fold-notes', true) ? 'open' : ''}>
+      ${foldHead('Ledger notes')}
       <div class="story">${emphasise(esc(b.notes))}</div>
-    </section>` : ''}`;
+    </details>` : ''}`;
 }
 
 function viewMoney(){
@@ -681,6 +694,10 @@ $('signin').onclick = () => {
     else if (++tries > 40) clearInterval(t);             // ~8s, give up quietly
   }, 200);
 })();
+document.addEventListener('toggle', e => {
+  if (e.target.tagName === 'DETAILS' && e.target.id) setFold(e.target.id, e.target.open);
+}, true);
+
 document.addEventListener('click', e => {
   if (e.target.id === 'refresh') return load();
   if (e.target.id === 'back')    return closeBooking();

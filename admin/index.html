@@ -157,6 +157,16 @@
      gets a reading measure rather than table-dense type */
   .story{font-size:.9rem;line-height:1.78;white-space:pre-wrap;max-width:76ch;color:#3a2e22}
   .story b{color:var(--teak)}
+  /* ---------- foldable panels ---------- */
+  details.panel > summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;
+       user-select:none;-webkit-tap-highlight-color:transparent}
+  details.panel > summary::-webkit-details-marker{display:none}
+  details.panel > summary h3{margin-bottom:0;flex:1}
+  details.panel > summary .caret{color:var(--mut);font-size:.72rem;transition:transform .18s ease;flex:none}
+  details.panel[open] > summary .caret{transform:rotate(90deg)}
+  details.panel > summary:hover .caret,details.panel > summary:hover h3{color:var(--terracotta)}
+  details.panel[open] > summary{margin-bottom:12px}
+
   /* ---------- the conversation thread ---------- */
   /* the panel goes cream so white incoming bubbles read as bubbles, not as panel */
   .panel.chatwrap{background:var(--cream-dark);padding:14px}
