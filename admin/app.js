@@ -470,6 +470,11 @@ function viewBookingDetail(b){
       </div>
     </div>
 
+    ${b.notes ? `<details class="panel" id="fold-notes" ${isOpen('fold-notes', true) ? 'open' : ''}>
+      ${foldHead('Ledger notes')}
+      <div class="story">${emphasise(esc(b.notes))}</div>
+    </details>` : ''}
+
     <details class="panel chatwrap" id="fold-chat" ${isOpen('fold-chat', true) ? 'open' : ''}>
       ${foldHead('How this booking happened', chat.length)}
       ${chat.length
@@ -479,12 +484,7 @@ function viewBookingDetail(b){
              and the whole exchange appears here.</div>`}
       ${wa ? `<p class="note">Logged by hand from the chat — WhatsApp itself cannot be read from here.
          <strong>Open the WhatsApp chat</strong> above goes to the live conversation.</p>` : ''}
-    </details>
-
-    ${b.notes ? `<details class="panel" id="fold-notes" ${isOpen('fold-notes', true) ? 'open' : ''}>
-      ${foldHead('Ledger notes')}
-      <div class="story">${emphasise(esc(b.notes))}</div>
-    </details>` : ''}`;
+    </details>`;
 }
 
 function viewMoney(){
