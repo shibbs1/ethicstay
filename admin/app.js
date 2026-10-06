@@ -135,6 +135,7 @@ async function load(){
     const keys = Object.keys(CFG.TABS);
     DATA = {};
     keys.forEach((k,i) => DATA[k] = toObjects(j.valueRanges[i]?.values));
+    await loadOptional();
     enrich();
     buildNav();
     DETAIL = hashId();
@@ -142,6 +143,24 @@ async function load(){
   } catch(e){
     $('view').innerHTML = `<div class="err">${esc(e.message)}</div>`;
   }
+}
+
+/* Optional tabs go in their own request: a range that names a sheet which does
+   not exist fails the WHOLE batchGet, and a missing Conversations tab must not
+   take the ledger down with it. */
+async function loadOptional(){
+  const opt = CFG.OPTIONAL_TABS || {};
+  const keys = Object.keys(opt);
+  keys.forEach(k => DATA[k] = []);
+  if (!keys.length) return;
+  const ranges = keys.map(k => 'ranges=' + encodeURIComponent(opt[k])).join('&');
+  try {
+    const res = await fetch(`https://sheets.googleapis.com/v4/spreadsheets/${CFG.SHEET_ID}/values:batchGet?${ranges}`,
+                            { headers:{ Authorization:'Bearer ' + TOKEN } });
+    if (!res.ok) return;                       // tab not created yet — carry on without it
+    const j = await res.json();
+    keys.forEach((k,i) => DATA[k] = toObjects(j.valueRanges[i]?.values));
+  } catch(e){ /* optional by definition */ }
 }
 
 function enrich(){
@@ -283,6 +302,55 @@ function payLine(p){
   </div>`;
 }
 
+/* ---------- the conversation, as it happened ----------
+   Rows come from the Conversations tab: Booking ID | When | Who | Side | Channel | Message.
+   Side decides which way a bubble faces; "system" is for the things that are not
+   messages at all - a voice call, a payment screenshot, a calendar block. */
+
+function parseWhen(c){
+  const raw = [c.when, c.time].filter(Boolean).join(' ').trim();
+  const d = parseDate(raw);
+  if (!d) return null;
+  const m = raw.match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+  if (m){
+    let h = +m[1]; const ap = (m[3] || '').toLowerCase();
+    if (ap === 'pm' && h < 12) h += 12;
+    if (ap === 'am' && h === 12) h = 0;
+    d.setHours(h, +m[2], 0, 0);
+  }
+  return d;
+}
+const clockOf = (d) => (d && (d.getHours() || d.getMinutes()))
+  ? d.toLocaleTimeString('en-IN', {hour:'numeric', minute:'2-digit'}) : '';
+
+const OURS = /^(us|me|owner|shibu|saju|vandana|jose|elizabeth)\b/i;
+function sideOf(c){
+  const s = String(c.side || '').trim().toLowerCase();
+  if (s.startsWith('sys') || s === 'event' || s === 'note') return 'sys';
+  if (s === 'us' || s === 'me' || s === 'owner' || s === 'host') return 'us';
+  if (s) return 'them';
+  return OURS.test(String(c.who || '')) ? 'us' : 'them';   // fall back to the name
+}
+
+function chatHTML(rows){
+  let day = '';
+  return rows.map(c => {
+    const d = parseWhen(c);
+    const side = sideOf(c);
+    const stamp = [clockOf(d), c.channel ? esc(c.channel) : ''].filter(Boolean).join(' · ');
+    let sep = '';
+    const label = d ? fmtDate(d) : '';
+    if (label && label !== day){ day = label; sep = `<div class="daysep">${esc(label)}</div>`; }
+    if (side === 'sys')
+      return `${sep}<div class="msg sys">${esc(c.message)}${stamp ? ` <span class="chan">${stamp}</span>` : ''}</div>`;
+    return `${sep}<div class="msg ${side}">
+      ${c.who ? `<div class="mh">${esc(c.who)}</div>` : ''}
+      <div>${esc(c.message)}</div>
+      ${stamp ? `<div class="mt">${stamp}</div>` : ''}
+    </div>`;
+  }).join('');
+}
+
 function viewBookingDetail(b){
   const n     = nightsOf(b);
   const rate  = num(b.rate);
@@ -295,6 +363,8 @@ function viewBookingDetail(b){
   const wa    = waNumber(b);
   const dnh   = /^(y|yes|true|1)$/i.test(String(b.do_not_host || '').trim());
   const chan  = CHANNEL[String(b.source || '').toLowerCase()] || '';
+  const chat  = (DATA.conversations || []).filter(c => c.booking_id === b.booking_id && String(c.message || '').trim())
+                  .sort((x,y) => (parseWhen(x) || 0) - (parseWhen(y) || 0));
   const rem   = `Hello ${b.guest_name}, a gentle reminder about the pending balance of ${money(b._due)} for your booking at Blessings Home (${fmtDate(b._in)}). Thank you! 🙏`;
 
   const dl = (pairs) => `<dl class="dl">${pairs.filter(x => x && x[1])
@@ -387,13 +457,21 @@ function viewBookingDetail(b){
       </div>
     </div>
 
-    <section class="panel">
-      <h3>How this booking happened</h3>
-      ${b.notes
-        ? `<div class="story">${emphasise(esc(b.notes))}</div>`
-        : `<div class="empty" style="padding:4px 0">Nothing written down for this booking yet. The Notes column in the sheet is where the conversation, the agreed terms and any discount get recorded.</div>`}
-      ${wa ? `<p class="note">The actual WhatsApp messages stay on WhatsApp — this reads only the ledger. Use <strong>Open the WhatsApp chat</strong> above to see the conversation itself.</p>` : ''}
-    </section>`;
+    <section class="panel chatwrap">
+      <h3>How this booking happened <span class="count">${chat.length}</span></h3>
+      ${chat.length
+        ? `<div class="chat">${chatHTML(chat)}</div>`
+        : `<div class="empty" style="padding:4px 0">No messages logged for this booking yet — add rows to the
+             <strong>Conversations</strong> tab of the sheet (Booking ID · When · Who · Side · Channel · Message)
+             and the whole exchange appears here.</div>`}
+      ${wa ? `<p class="note">Logged by hand from the chat — WhatsApp itself cannot be read from here.
+         <strong>Open the WhatsApp chat</strong> above goes to the live conversation.</p>` : ''}
+    </section>
+
+    ${b.notes ? `<section class="panel">
+      <h3>Ledger notes</h3>
+      <div class="story">${emphasise(esc(b.notes))}</div>
+    </section>` : ''}`;
 }
 
 function viewMoney(){

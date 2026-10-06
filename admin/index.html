@@ -157,6 +157,25 @@
      gets a reading measure rather than table-dense type */
   .story{font-size:.9rem;line-height:1.78;white-space:pre-wrap;max-width:76ch;color:#3a2e22}
   .story b{color:var(--teak)}
+  /* ---------- the conversation thread ---------- */
+  /* the panel goes cream so white incoming bubbles read as bubbles, not as panel */
+  .panel.chatwrap{background:var(--cream-dark);padding:14px}
+  .chat{display:flex;flex-direction:column;gap:9px;max-width:780px;margin:0 auto}
+  .msg{max-width:78%;padding:9px 13px;border-radius:14px;font-size:.87rem;line-height:1.62;
+       box-shadow:0 1px 2px rgba(43,33,24,.12);white-space:pre-wrap;word-break:break-word}
+  .msg.them{align-self:flex-start;background:#fff;border-top-left-radius:4px}
+  .msg.us{align-self:flex-end;background:#e4f0db;border-top-right-radius:4px}
+  .msg .mh{font-size:.68rem;font-weight:700;color:var(--terracotta);margin-bottom:3px}
+  .msg.us .mh{color:var(--palm)}
+  .msg .mt{font-size:.62rem;color:var(--mut);text-align:right;margin-top:4px}
+  /* voice calls, payment screenshots, calendar blocks - not messages, so centred and quiet */
+  .msg.sys{align-self:center;max-width:92%;background:rgba(255,255,255,.72);color:var(--mut);
+       font-size:.76rem;text-align:center;box-shadow:none;border-radius:12px;padding:6px 13px}
+  .msg.sys .chan{white-space:nowrap}
+  .daysep{align-self:center;background:rgba(91,58,36,.09);color:var(--teak);font-size:.66rem;
+       font-weight:700;letter-spacing:.5px;padding:3px 13px;border-radius:12px;margin:6px 0 2px}
+  .chan{font-size:.62rem;letter-spacing:.4px;text-transform:uppercase;opacity:.75}
+
   .warn{background:#fdeceb;border-left:4px solid var(--danger);padding:11px 15px;border-radius:8px;
         color:#7d241b;font-size:.85rem;font-weight:600;margin-bottom:16px}
   @media(max-width:760px){
@@ -166,6 +185,8 @@
     .dl dt{font-size:.72rem;letter-spacing:.4px;text-transform:uppercase}
     .dl dd{margin-bottom:9px}
     .story{font-size:.88rem}
+    .msg{max-width:88%}
+    .panel.chatwrap{padding:12px 10px}
   }
 
   .err{background:#fdeceb;border-left:4px solid var(--danger);padding:14px 16px;

@@ -12,5 +12,10 @@ window.ADMIN_CONFIG = {
     expenses: 'Expenses!A:I',
     meters:   "'Meter Readings'!A:E",
     inventory: 'Inventory!A:H'
+  },
+  /* Fetched separately and allowed to fail: if the tab has not been created in
+     the Sheet yet, the rest of the ledger still loads. */
+  OPTIONAL_TABS: {
+    conversations: 'Conversations!A:F'
   }
 };
