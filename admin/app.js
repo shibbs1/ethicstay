@@ -9,6 +9,7 @@ let TOKEN = null;
 let DATA = null;          // {bookings, payments, expenses, meters, inventory}
 let VIEW = 'summary';
 let PERIOD = 'month';     // month | year | all
+let DETAIL = null;        // booking_id when one booking is open, else null
 
 const PERIODS = [{id:'month',label:'This month'},{id:'year',label:'This year'},{id:'all',label:'All time'}];
 function inPeriod(d){
@@ -136,6 +137,7 @@ async function load(){
     keys.forEach((k,i) => DATA[k] = toObjects(j.valueRanges[i]?.values));
     enrich();
     buildNav();
+    DETAIL = hashId();
     render();
   } catch(e){
     $('view').innerHTML = `<div class="err">${esc(e.message)}</div>`;
@@ -176,7 +178,7 @@ const list = (arr, fn, msg) => `<div class="card">${arr.length ? arr.map(fn).joi
 
 function bookingRow(b, showDue){
   const late = showDue && b._in && b._in < today();
-  return `<div class="row ${showDue && b._due > 0 ? 'owed' : ''}">
+  return `<div class="row ${showDue && b._due > 0 ? 'owed' : ''}" data-bid="${esc(b.booking_id)}">
     <div>
       <div class="who">${esc(b.guest_name)}${srcTag(b.source)}${b._status.toLowerCase()==='bad debt'?'<span class="tag t-bad">bad debt</span>':''}</div>
       <div class="meta">${esc(b.booking_id)} · ${esc(b.unit)} · ${fmtDate(b._in)}${b._out?' → '+fmtDate(b._out):''}
@@ -239,7 +241,7 @@ function viewBookings(){
     </div>`;
 }
 const bookingTr = (b) => `<tr data-s="${esc((b.guest_name+' '+b.booking_id+' '+b.city+' '+(b.location||'')+' '+b.unit).toLowerCase())}"
-    data-src="${esc(b.source)}" data-st="${esc(b._status)}">
+    data-src="${esc(b.source)}" data-st="${esc(b._status)}" data-bid="${esc(b.booking_id)}">
   <td>${esc(b.booking_id)}</td><td>${esc(b.guest_name)}</td>
   <td>${esc([b.city, b.location].filter(Boolean).join(' · ')) || '—'}</td><td>${esc(b.unit)}</td>
   <td>${shortDate(b._in)}</td><td>${shortDate(b._out)}</td><td>${esc(b.source)}</td>
@@ -247,6 +249,152 @@ const bookingTr = (b) => `<tr data-s="${esc((b.guest_name+' '+b.booking_id+' '+b
   <td class="num">${b._paid?money(b._paid):'—'}</td>
   <td class="num" ${b._due>0?'style="color:var(--danger);font-weight:700"':''}>${b._total?money(b._due):'—'}</td>
   <td>${esc(b._status)}</td></tr>`;
+
+/* ---------- one booking, in full ----------
+   The sheet row is the skeleton; the Notes column is where the whole story of a
+   booking actually lives (how the enquiry came in, what was agreed on the phone,
+   what was discounted and why). Nothing rendered that narrative until now, so it
+   gets the most room here. */
+
+const nightsOf = (b) => (b._in && b._out) ? Math.max(0, Math.round((b._out - b._in) / 86400000)) : 0;
+const waNumber = (b) => { const d = String(b.phone || '').replace(/\D/g,''); return d ? (d.length === 10 ? '91' + d : d) : ''; };
+
+/* The notes use capitals to flag what matters - NOTE, TO DO, CALENDAR, LESSON,
+   SAME PARTY. Four letters or more, so PM / UPI / GST stay as they are. */
+const emphasise = (t) => t.replace(/\b(?:TO DO|DO NOT|[A-Z]{4,}(?:\s+[A-Z]{2,})*)\b/g, m => `<b>${m}</b>`);
+
+const CHANNEL = {
+  direct: 'Booked directly - no platform fee, money comes to us, and we hold the cancellation terms ourselves.',
+  airbnb: 'Booked through Airbnb - 15.5% host fee, payout follows check-in, and Airbnb terms apply.',
+  agent:  'Came through an agent or a referral.'
+};
+
+function payLine(p){
+  const counts = isRent(p.type);
+  const amt = num(p.amount);
+  return `<div class="pay-row ${counts ? '' : 'off'}">
+    <div>
+      <div><strong>${esc(p.type || 'Payment')}</strong>
+        ${counts ? '' : '<span class="tag t-agent">not in balance</span>'}</div>
+      <div class="meta">${shortDate(parseDate(p.date))}${p.mode_of_pay ? ' &middot; ' + esc(p.mode_of_pay) : ''}${p.received_by ? ' &middot; to ' + esc(p.received_by) : ''}${p.payment_id ? ' &middot; ' + esc(p.payment_id) : ''}</div>
+      ${p.notes ? `<div class="meta">${esc(p.notes)}</div>` : ''}
+    </div>
+    <div class="amt">${amt < 0 ? '-' : ''}${money(Math.abs(amt))}</div>
+  </div>`;
+}
+
+function viewBookingDetail(b){
+  const n     = nightsOf(b);
+  const rate  = num(b.rate);
+  const exp   = rate * (n || 1);                 // a same-day function still bills one unit
+  const adj   = (b._total && exp) ? b._total - exp : 0;
+  const pays  = DATA.payments.filter(p => p.booking_id === b.booking_id)
+                             .sort((x,y) => (parseDate(x.date)||0) - (parseDate(y.date)||0));
+  const costs = DATA.expenses.filter(e => e.booking_id === b.booking_id);
+  const costT = costs.reduce((s,e) => s + num(e.amount), 0);
+  const wa    = waNumber(b);
+  const dnh   = /^(y|yes|true|1)$/i.test(String(b.do_not_host || '').trim());
+  const chan  = CHANNEL[String(b.source || '').toLowerCase()] || '';
+  const rem   = `Hello ${b.guest_name}, a gentle reminder about the pending balance of ${money(b._due)} for your booking at Blessings Home (${fmtDate(b._in)}). Thank you! 🙏`;
+
+  const dl = (pairs) => `<dl class="dl">${pairs.filter(x => x && x[1])
+      .map(([k,v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+
+  return `
+    <div class="head">
+      <div class="head-l">
+        <button class="back" id="back">&larr; Back</button>
+        <div class="head-t">
+          <h1>${esc(b.guest_name)}</h1>
+          <div class="sub">${esc(b.booking_id)}${b.unit ? ' &middot; ' + esc(b.unit) : ''}${b.purpose ? ' &middot; ' + esc(b.purpose) : ''}
+            ${srcTag(b.source)}${b._status ? `<span class="tag t-agent">${esc(b._status)}</span>` : ''}</div>
+        </div>
+      </div>
+      <div class="rt"><button id="refresh">&#8635; Refresh</button></div>
+    </div>
+
+    ${dnh ? '<div class="warn">&#9888;&#65039; Marked DO NOT HOST &mdash; check the notes below before taking anything from this guest again.</div>' : ''}
+
+    <div class="tiles">
+      <div class="tile"><div class="k">Agreed total</div><div class="v">${b._total ? money(b._total) : '—'}</div>
+        <div class="s">${rate ? money(rate) + ' × ' + (n || 1) + (n === 1 || !n ? ' night' : ' nights') : 'no rate recorded'}</div></div>
+      <div class="tile good"><div class="k">Received</div><div class="v">${money(b._paid)}</div>
+        <div class="s">${pays.filter(p => isRent(p.type)).length} payment${pays.filter(p => isRent(p.type)).length === 1 ? '' : 's'}</div></div>
+      <div class="tile ${b._due > 0 ? 'alert' : 'good'}"><div class="k">${b._due > 0 ? 'Balance due' : 'Settled'}</div>
+        <div class="v">${b._total ? money(b._due) : '—'}</div>
+        <div class="s">${b._due > 0 && b._in ? 'by ' + fmtDate(b._in) : 'nothing outstanding'}</div></div>
+      <div class="tile"><div class="k">Guests</div><div class="v">${esc(b.guests || '—')}</div>
+        <div class="s">${n ? n + (n === 1 ? ' night' : ' nights') : 'day booking'}</div></div>
+    </div>
+
+    <div class="cols wide-left">
+      <div>
+        <section class="panel">
+          <h3>Money</h3>
+          ${dl([
+            ['Rate', rate ? money(rate) + ' per night' : ''],
+            ['Rate × nights', exp ? money(exp) : ''],
+            ['Agreed total', b._total ? money(b._total) : ''],
+            ['Adjustment', Math.abs(adj) >= 1
+               ? `<span style="color:${adj < 0 ? 'var(--palm)' : 'var(--danger)'}">${adj < 0 ? '−' : '+'}${money(Math.abs(adj))}</span>
+                  <span style="font-weight:400;color:var(--mut)">(${adj < 0 ? 'discount or waiver' : 'added above the nightly rate'} — reason in the notes)</span>` : '']
+          ])}
+          <h3 style="margin-top:18px">Payments <span class="count">${pays.length}</span></h3>
+          ${pays.length ? pays.map(payLine).join('') : '<div class="empty" style="padding:4px 0">Nothing received yet.</div>'}
+          ${b._total ? `<div class="sum-row ${b._due > 0 ? 'due' : ''}">
+            <span>${b._due > 0 ? 'Still to collect' : 'Fully settled'}</span><span>${money(b._due)}</span></div>` : ''}
+          ${b._due > 0 && wa ? `<div class="acts"><a href="https://wa.me/${wa}?text=${encodeURIComponent(rem)}" target="_blank" rel="noopener">Send a balance reminder →</a></div>` : ''}
+        </section>
+
+        ${costs.length ? `<section class="panel">
+          <h3>Costs charged to this booking <span class="count">${costs.length}</span></h3>
+          ${costs.map(e => `<div class="pay-row"><div>
+            <div><strong>${esc(e.item || e.category || 'Expense')}</strong></div>
+            <div class="meta">${shortDate(parseDate(e.date))}${e.category ? ' &middot; ' + esc(e.category) : ''}${e.person_responsible ? ' &middot; ' + esc(e.person_responsible) : ''}${String(e.bill_present).toLowerCase() === 'yes' ? ' &middot; 🧾 bill' : ''}</div>
+          </div><div class="amt">${money(num(e.amount))}</div></div>`).join('')}
+          <div class="sum-row"><span>Total spent on this booking</span><span>${money(costT)}</span></div>
+          ${b._total ? `<div class="meta" style="margin-top:8px;color:var(--mut)">Net of these costs: <strong>${money(b._total - costT)}</strong></div>` : ''}
+        </section>` : ''}
+      </div>
+
+      <div>
+        <section class="panel">
+          <h3>The stay</h3>
+          ${dl([
+            ['Unit', esc(b.unit)],
+            ['Purpose', esc(b.purpose)],
+            ['Planned', b._in ? fmtDate(b._in) + (b._out ? ' → ' + fmtDate(b._out) : '') : ''],
+            ['Actual', [parseDate(b.actual_check_in), parseDate(b.actual_checkout)].some(Boolean)
+                ? [fmtDate(parseDate(b.actual_check_in)) || '—', fmtDate(parseDate(b.actual_checkout)) || '—'].join(' → ') : ''],
+            ['Guests', esc(b.guests)],
+            ['Status', esc(b._status)]
+          ])}
+        </section>
+
+        <section class="panel">
+          <h3>The guest</h3>
+          ${dl([
+            ['Name', esc(b.guest_name)],
+            ['From', esc([b.city, b.location].filter(Boolean).join(' · '))],
+            ['Phone', esc(b.phone)],
+            ['Channel', b.source ? `${esc(b.source)}${chan ? `<div style="font-weight:400;color:var(--mut);font-size:.8rem;margin-top:3px">${chan}</div>` : ''}` : '']
+          ])}
+          ${wa ? `<div class="acts">
+            <a href="https://wa.me/${wa}" target="_blank" rel="noopener">Open the WhatsApp chat →</a>
+            <a href="tel:+${wa}">Call</a>
+          </div>` : ''}
+        </section>
+      </div>
+    </div>
+
+    <section class="panel">
+      <h3>How this booking happened</h3>
+      ${b.notes
+        ? `<div class="story">${emphasise(esc(b.notes))}</div>`
+        : `<div class="empty" style="padding:4px 0">Nothing written down for this booking yet. The Notes column in the sheet is where the conversation, the agreed terms and any discount get recorded.</div>`}
+      ${wa ? `<p class="note">The actual WhatsApp messages stay on WhatsApp — this reads only the ledger. Use <strong>Open the WhatsApp chat</strong> above to see the conversation itself.</p>` : ''}
+    </section>`;
+}
 
 function viewMoney(){
   const t = today();
@@ -361,9 +509,41 @@ function buildNav(){
 
 function render(){
   if (!DATA) return;
+  if (DETAIL){
+    const b = DATA.bookingById[DETAIL];
+    if (b){ $('view').innerHTML = viewBookingDetail(b); return; }
+    DETAIL = null;                       // id in the URL no longer exists
+  }
   $('view').innerHTML = (VIEWS.find(v=>v.id===VIEW) || VIEWS[0]).fn();
   wireFilters();
 }
+
+/* ---------- one booking at a time, addressable ----------
+   The open booking lives in the hash, so the browser back button works, a
+   booking can be bookmarked, and a refresh comes back to the same place. */
+const hashId = () => { const m = location.hash.match(/^#booking\/(.+)$/); return m ? decodeURIComponent(m[1]) : null; };
+
+function openBooking(id){
+  if (!DATA?.bookingById?.[id]) return;
+  DETAIL = id;
+  location.hash = '#booking/' + encodeURIComponent(id);   // hashchange then sees no change
+  render();
+  window.scrollTo(0,0);
+}
+function closeBooking(){
+  DETAIL = null;
+  // replace rather than back(): a booking opened from a bookmark has nothing behind it
+  if (location.hash) history.replaceState('', '', location.pathname + location.search);
+  render();
+  window.scrollTo(0,0);
+}
+addEventListener('hashchange', () => {
+  const id = hashId();
+  if (id === DETAIL) return;
+  DETAIL = id;
+  render();
+  window.scrollTo(0,0);
+});
 
 function wireFilters(){
   const filter = (inputId, bodyId, selIds) => {
@@ -423,4 +603,11 @@ $('signin').onclick = () => {
     else if (++tries > 40) clearInterval(t);             // ~8s, give up quietly
   }, 200);
 })();
-document.addEventListener('click', e => { if (e.target.id === 'refresh') load(); });
+document.addEventListener('click', e => {
+  if (e.target.id === 'refresh') return load();
+  if (e.target.id === 'back')    return closeBooking();
+  // a row opens its booking - unless the click was on a link inside it
+  if (e.target.closest('a')) return;
+  const el = e.target.closest('[data-bid]');
+  if (el) openBooking(el.dataset.bid);
+});

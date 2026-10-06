@@ -124,6 +124,50 @@
   .ftot{margin-left:auto;align-self:center;font-size:.8rem;color:var(--teak);font-weight:700;white-space:nowrap}
   .ftot span{color:var(--mut);font-weight:400}
 
+  /* ---------- one booking, in full ---------- */
+  .row[data-bid],tbody tr[data-bid]{cursor:pointer}
+  .row[data-bid]:hover{background:#fdfbf7}
+  .head-l{display:flex;align-items:center;gap:14px;min-width:0}
+  .head-t{min-width:0}
+  .back{background:transparent;border:1px solid var(--cream-dark);color:var(--teak);
+        border-radius:20px;padding:7px 15px;font:inherit;font-size:.78rem;cursor:pointer;white-space:nowrap}
+  .back:hover{border-color:var(--terracotta);color:var(--terracotta)}
+  .panel{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;margin-bottom:18px}
+  .panel h3{font-size:.68rem;letter-spacing:1.1px;text-transform:uppercase;color:var(--mut);
+        margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .dl{display:grid;grid-template-columns:auto 1fr;gap:9px 18px;font-size:.88rem}
+  .dl dt{color:var(--mut);white-space:nowrap}
+  .dl dd{font-weight:600;word-break:break-word}
+  .acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .acts a{text-decoration:none;border:1px solid var(--cream-dark);border-radius:20px;padding:7px 14px;
+        font-size:.78rem;font-weight:600;color:var(--teak);white-space:nowrap}
+  .acts a:hover{border-color:var(--palm);color:var(--palm)}
+  .pay-row{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+        padding:11px 0;border-bottom:1px solid var(--cream-dark)}
+  .pay-row:last-of-type{border-bottom:none}
+  .pay-row .meta{font-size:.76rem;color:var(--mut);margin-top:2px}
+  .pay-row .amt{font-weight:700;white-space:nowrap}
+  /* deposits, refunds and TDS sit in the list for the audit trail but are not
+     part of what the guest still owes, so they are visibly stepped back */
+  .pay-row.off{opacity:.62}
+  .sum-row{display:flex;justify-content:space-between;gap:14px;padding-top:11px;margin-top:4px;
+        border-top:2px solid var(--cream-dark);font-weight:700}
+  .sum-row.due{color:var(--danger)}
+  /* the narrative is the only place the whole story of a booking lives, so it
+     gets a reading measure rather than table-dense type */
+  .story{font-size:.9rem;line-height:1.78;white-space:pre-wrap;max-width:76ch;color:#3a2e22}
+  .story b{color:var(--teak)}
+  .warn{background:#fdeceb;border-left:4px solid var(--danger);padding:11px 15px;border-radius:8px;
+        color:#7d241b;font-size:.85rem;font-weight:600;margin-bottom:16px}
+  @media(max-width:760px){
+    .head-l{gap:10px}
+    .back{padding:6px 11px;font-size:.72rem}
+    .dl{grid-template-columns:1fr;gap:2px 0}
+    .dl dt{font-size:.72rem;letter-spacing:.4px;text-transform:uppercase}
+    .dl dd{margin-bottom:9px}
+    .story{font-size:.88rem}
+  }
+
   .err{background:#fdeceb;border-left:4px solid var(--danger);padding:14px 16px;
        border-radius:8px;color:#7d241b;font-size:.88rem;margin-bottom:18px}
   .note{font-size:.75rem;color:var(--mut);margin-top:8px}
@@ -162,7 +206,11 @@
     main{margin-left:0;padding:14px 14px calc(var(--bar) + 26px);max-width:none}
     .head{margin:-14px -14px 16px;padding:13px 16px}
     .head h1{font-size:1.08rem}
-    .tile .v{font-size:1.25rem}
+    /* two across on a phone: four stacked tiles pushed the real content off-screen */
+    .tiles{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .tile{padding:12px 13px}
+    .tile .v{font-size:1.18rem}
+    .tile .k{font-size:.62rem;letter-spacing:.9px}
   }
 </style>
 </head>
