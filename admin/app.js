@@ -595,7 +595,7 @@ function buildNav(){
   $('nav').innerHTML = VIEWS.map(v => `<button data-v="${v.id}" class="${v.id===VIEW?'on':''}">
       <span class="ic">${v.ic}</span><span>${v.label}</span>
       ${v.id==='summary'&&due?`<span class="pill">${due}</span>`:''}</button>`).join('');
-  $('nav').querySelectorAll('button').forEach(b => b.onclick = () => { VIEW = b.dataset.v; buildNav(); render(); window.scrollTo(0,0); });
+  $('nav').querySelectorAll('button').forEach(b => b.onclick = () => goView(b.dataset.v));
 }
 
 function render(){
@@ -621,13 +621,19 @@ function openBooking(id){
   render();
   window.scrollTo(0,0);
 }
-function closeBooking(){
+/* Leaving a booking, by the Back button or by picking anything in the nav.
+   render() hands the screen to the detail view whenever DETAIL is set, so a nav
+   click that only changed VIEW used to appear to do nothing at all. */
+function goView(id){
+  VIEW = id;
   DETAIL = null;
   // replace rather than back(): a booking opened from a bookmark has nothing behind it
   if (location.hash) history.replaceState('', '', location.pathname + location.search);
+  buildNav();
   render();
   window.scrollTo(0,0);
 }
+const closeBooking = () => goView(VIEW);
 addEventListener('hashchange', () => {
   const id = hashId();
   if (id === DETAIL) return;
