@@ -335,8 +335,11 @@
   </main>
 </div>
 
-<script src="config.js"></script>
+<!-- ?v= is bumped on every deploy. Without it GitHub Pages' cache headers keep
+     serving a stale app.js, so a new screen can be live on the server and still
+     be invisible in the browser until a hard reload. -->
+<script src="config.js?v=2026-11-12"></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-<script src="app.js"></script>
+<script src="app.js?v=2026-11-12"></script>
 </body>
 </html>
