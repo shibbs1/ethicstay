@@ -178,7 +178,44 @@ function enrich(){
     b._status= String(b.status || '').trim();
   });
   DATA.bookingById = Object.fromEntries(DATA.bookings.map(b => [b.booking_id, b]));
+  enrichEnquiries();
 }
+
+/* ---------- enquiries ----------
+   An enquiry is the step before a booking: someone asked, and either it became a
+   booking or it did not. The Outcome column is free text in the sheet, so it is
+   folded down to four states here. "Merged" means the enquiry turned out to be the
+   same party as another one and was folded into a single booking - it converted,
+   but it is not an independent win, so it is kept out of the conversion rate. */
+const enqState = (e) => {
+  const s = String(e.outcome || '').trim().toLowerCase();
+  if (s.startsWith('won'))    return 'won';
+  if (s.startsWith('merged')) return 'merged';
+  if (s.startsWith('lost'))   return 'lost';
+  return 'open';
+};
+
+function enrichEnquiries(){
+  (DATA.enquiries || []).forEach(e => {
+    e._in     = parseDate(e.date_in);
+    e._last   = parseDate(e.last_contact);
+    e._state  = enqState(e);
+    e._open   = e._state === 'open';
+    // days silent is recomputed rather than read from the sheet's formula, so the
+    // number is right even if the sheet has not recalculated
+    e._silent = (e._open && e._last) ? daysAgo(e._last) : null;
+    // the guest spoke last, so a reply is owed
+    e._ourMove = e._open && /^guest/i.test(String(e.who_spoke_last || '').trim());
+    // we spoke last but it has gone quiet - nobody owes a reply, yet it is dying
+    e._stale   = e._open && !e._ourMove && e._silent !== null && e._silent >= 7;
+    e._todo    = e._ourMove || e._stale;
+    e._quoted = num(e.quoted);
+    const b = DATA.bookingById[String(e.booking_id || '').trim()];
+    e._booking = b || null;
+    e._value   = b && b._total ? b._total : e._quoted;
+  });
+}
+const enqNeedingReply = () => (DATA?.enquiries || []).filter(e => e._todo).length;
 
 /* ---------- shared bits ---------- */
 const srcTag = (s) => {
@@ -582,19 +619,375 @@ function viewInventory(){
     ${inv.length?'':'<p class="note">The Inventory tab in the sheet is still being filled in.</p>'}`;
 }
 
+/* ---------- enquiries, as a picture ----------
+   Three questions this screen answers at a glance: what is still open and whose
+   move is it, how many enquiries actually turn into bookings, and how that has
+   moved month by month. */
+
+const enqTag = (st) => {
+  const cls = st === 'won' ? 't-won' : st === 'lost' ? 't-lost' : st === 'merged' ? 't-agent' : 't-open';
+  return `<span class="tag ${cls}">${st}</span>`;
+};
+
+/* one open enquiry: a row that folds open to the full note */
+function enqCard(e){
+  const d = e._silent;
+  // red once a reply is owed and days have passed, or once a live lead has gone quiet
+  const heat = (e._ourMove && d !== null && d >= 3) || (e._stale && d >= 14) ? 'hot'
+             : e._todo ? 'warm' : '';
+  return `<details class="enq ${heat}" id="enqf-${esc(e.enquiry_id)}" ${isOpen('enqf-'+e.enquiry_id,false)?'open':''}>
+    <summary>
+      <div>
+        <div class="who">${esc(e.name) || '(no name given)'}
+          ${srcTag(e.channel)}
+          ${e._ourMove ? '<span class="ball you">reply owed</span>'
+            : e._stale ? '<span class="ball you">gone quiet</span>'
+            : '<span class="ball them">waiting on guest</span>'}</div>
+        <div class="meta">${esc(e.enquiry_id)} · ${esc(e.dates_asked) || 'no dates given'}${e.unit?' · '+esc(e.unit):''}${e.members?' · '+esc(e.members)+' pax':''}</div>
+        <div class="meta">${esc(e.outcome)}${e._quoted?' · quoted '+money(e._quoted):' · never quoted'}</div>
+      </div>
+      <div class="silent ${d !== null && d >= 3 ? 'bad' : ''}">
+        ${d === null ? '—' : d === 0 ? 'today' : d + ' day' + (d===1?'':'s')}
+        <small>${d === null ? 'no last contact' : 'since last word'}</small>
+      </div>
+    </summary>
+    <div class="body"><div class="story">${emphasise(esc(e.notes)) || '<span class="empty">No notes.</span>'}</div></div>
+  </details>`;
+}
+
+/* a won enquiry points at the booking it became, and clicking opens it */
+const enqWonRow = (e) => `<div class="row" ${e._booking?`data-bid="${esc(e._booking.booking_id)}"`:''}>
+  <div>
+    <div class="who">${esc(e.name) || '(no name given)'}${srcTag(e.channel)}${enqTag(e._state)}</div>
+    <div class="meta">${esc(e.enquiry_id)}${e.booking_id?' → <strong>'+esc(e.booking_id)+'</strong>':''} · ${esc(e.dates_asked)}</div>
+    <div class="meta">asked ${fmtDate(e._in)}${e._last?' · closed '+fmtDate(e._last):''}</div>
+  </div>
+  <div class="amt">${e._value ? money(e._value) : '—'}</div>
+</div>`;
+
+function viewEnquiries(){
+  const all = (DATA.enquiries || []).slice();
+  const head = (sub) => `<div class="head"><h1>Enquiries</h1>
+      <div class="rt"><span class="sub">${sub}</span><button id="refresh">↻ Refresh</button></div></div>`;
+
+  if (!all.length) return head('not loaded') + `<div class="card"><div class="empty">
+    No Enquiries tab found in the sheet, or it is empty. Once rows are added there,
+    this screen fills in by itself.</div></div>`;
+
+  const of = (st) => all.filter(e => e._state === st);
+  const open = of('open'), won = of('won'), lost = of('lost'), merged = of('merged');
+  const n = all.length;
+  const closed = won.length + lost.length;
+  const rate = closed ? Math.round(won.length / closed * 100) : 0;
+
+  // one booking can come from several enquiries (merged), so count booking ids once
+  const wonIds = [...new Set(won.concat(merged).map(e => String(e.booking_id||'').trim()).filter(Boolean))];
+  const wonValue = wonIds.reduce((s,id) => s + (DATA.bookingById[id]?._total || 0), 0);
+  const lostValue = lost.reduce((s,e) => s + e._quoted, 0);
+  const openValue = open.reduce((s,e) => s + e._quoted, 0);
+  const mine   = open.filter(e =>  e._todo).sort((a,b) => (b._silent??-1) - (a._silent??-1));
+  const theirs = open.filter(e => !e._todo).sort((a,b) => (b._silent??-1) - (a._silent??-1));
+
+  // pipeline bar: each segment is as wide as its share of all enquiries
+  const pct = (c) => n ? (c / n * 100) : 0;
+  const seg = (cls, c, label) => c ? `<div class="${cls}" style="flex:0 0 ${pct(c).toFixed(2)}%" title="${label}: ${c}">${pct(c) > 7 ? c : ''}</div>` : '';
+
+  // month by month, newest last, only months that actually have enquiries
+  const months = {};
+  all.forEach(e => {
+    if (!e._in) return;
+    const k = e._in.getFullYear() + '-' + String(e._in.getMonth()+1).padStart(2,'0');
+    (months[k] = months[k] || {won:0, lost:0, open:0, label:e._in.toLocaleDateString('en-IN',{month:'short'})});
+    const b = e._state === 'merged' ? 'won' : e._state;
+    months[k][b]++;
+  });
+  const keys = Object.keys(months).sort().slice(-8);
+  const peak = Math.max(1, ...keys.map(k => months[k].won + months[k].lost + months[k].open));
+  const bars = keys.map(k => {
+    const m = months[k], tot = m.won + m.lost + m.open;
+    const h = (c) => c ? `<div class="sg s-${c[0]}" style="flex:0 0 ${(c[1]/peak*100).toFixed(2)}%"></div>` : '';
+    return `<div class="b" title="${m.label}: ${tot} enquiries, ${m.won} won">
+      <div class="tot">${tot}</div>
+      <div class="stack">${h(['open',m.open])}${h(['lost',m.lost])}${h(['won',m.won])}</div>
+      <div class="lab">${m.label}</div></div>`;
+  }).join('');
+
+  return head(`${n} in total`) + `
+    <div class="tiles">
+      <div class="tile ${mine.length?'alert':'good'}"><div class="k">Needs action</div><div class="v">${mine.length}</div>
+        <div class="s">${open.filter(e=>e._ourMove).length} reply owed · ${open.filter(e=>e._stale).length} gone quiet</div></div>
+      <div class="tile"><div class="k">Still open</div><div class="v">${open.length}</div>
+        <div class="s">${openValue?money(openValue)+' quoted':'nothing quoted yet'}</div></div>
+      <div class="tile good"><div class="k">Converted</div><div class="v">${rate}%</div>
+        <div class="s">${won.length} won of ${closed} closed${merged.length?' · '+merged.length+' merged':''}</div></div>
+      <div class="tile"><div class="k">Value won</div><div class="v">${money(wonValue)}</div>
+        <div class="s">${wonIds.length} booking${wonIds.length===1?'':'s'} · ${money(lostValue)} lost</div></div>
+    </div>
+
+    <section>
+      <h2>The pipeline <span class="count">${n}</span></h2>
+      <div class="pipe">
+        ${seg('p-open',   open.length,   'Open')}
+        ${seg('p-won',    won.length,    'Won')}
+        ${seg('p-merged', merged.length, 'Merged')}
+        ${seg('p-lost',   lost.length,   'Lost')}
+      </div>
+      <div class="legend">
+        <span><i class="p-open"></i>Open <b>${open.length}</b></span>
+        <span><i class="p-won"></i>Won <b>${won.length}</b></span>
+        ${merged.length?`<span><i class="p-merged"></i>Merged into another booking <b>${merged.length}</b></span>`:''}
+        <span><i class="p-lost"></i>Lost <b>${lost.length}</b></span>
+      </div>
+    </section>
+
+    <div class="cols wide-left">
+      <section>
+        <h2>Needs action <span class="count">${mine.length}</span></h2>
+        ${mine.length ? mine.map(enqCard).join('')
+          : '<div class="card"><div class="empty">Nothing owing a reply or gone quiet. 🎉</div></div>'}
+        ${theirs.length ? `<h2 style="margin-top:18px">Open, ball with the guest <span class="count">${theirs.length}</span></h2>
+          ${theirs.map(enqCard).join('')}` : ''}
+      </section>
+      <div>
+        <section>
+          <h2>Enquiries by month</h2>
+          <div class="card" style="padding:14px 16px">
+            <div class="bars">${bars || '<div class="empty">No dated enquiries yet.</div>'}</div>
+            <div class="legend" style="margin-top:4px">
+              <span><i class="s-won"></i>Won</span><span><i class="s-lost"></i>Lost</span><span><i class="s-open"></i>Still open</span>
+            </div>
+          </div>
+        </section>
+        <section>
+          <h2>Won <span class="count">${won.length + merged.length}</span></h2>
+          ${list(won.concat(merged).sort((a,b)=>(b._in||0)-(a._in||0)), enqWonRow, 'Nothing won yet.')}
+        </section>
+        ${lost.length?`<section><h2>Lost <span class="count">${lost.length}</span></h2>
+          ${list(lost.sort((a,b)=>(b._in||0)-(a._in||0)), enqWonRow, '')}</section>`:''}
+      </div>
+    </div>
+
+    <section>
+      <h2>Every enquiry <span class="count">${n}</span></h2>
+      <div class="filters">
+        <input id="qn" placeholder="Search name, ID, dates, unit, notes…">
+        <select id="fout"><option value="">All outcomes</option>
+          <option value="open">Open</option><option value="won">Won</option>
+          <option value="merged">Merged</option><option value="lost">Lost</option></select>
+        <select id="fch"><option value="">All channels</option>
+          ${[...new Set(all.map(e=>e.channel).filter(Boolean))].map(c=>`<option>${esc(c)}</option>`).join('')}</select>
+      </div>
+      <div class="card tblwrap">
+        <table><thead><tr>
+          <th>ID</th><th>Asked</th><th>Name</th><th>Channel</th><th>Dates</th><th>Unit</th>
+          <th class="num">Pax</th><th class="num">Quoted</th><th>Outcome</th><th>Booking</th><th class="num">Silent</th>
+        </tr></thead><tbody id="ntbody">${all.slice().sort((a,b)=>(b._in||0)-(a._in||0)).map(e=>`
+          <tr data-s="${esc(((e.name||'')+' '+e.enquiry_id+' '+(e.dates_asked||'')+' '+(e.unit||'')+' '+(e.contact||'')+' '+(e.notes||'')).toLowerCase())}"
+              data-out="${e._state}" data-ch="${esc(e.channel)}" ${e._booking?`data-bid="${esc(e._booking.booking_id)}"`:''}>
+            <td>${esc(e.enquiry_id)}</td><td>${shortDate(e._in)}</td>
+            <td>${esc(e.name)||'—'}</td><td>${esc(e.channel)}</td>
+            <td>${esc(e.dates_asked)||'—'}</td><td>${esc(e.unit)||'—'}</td>
+            <td class="num">${esc(e.members)||'—'}</td>
+            <td class="num">${e._quoted?money(e._quoted):'—'}</td>
+            <td>${enqTag(e._state)}</td><td>${esc(e.booking_id)||'—'}</td>
+            <td class="num" ${e._silent!==null&&e._silent>=3?'style="color:var(--danger);font-weight:700"':''}>${e._silent===null?'—':e._silent}</td>
+          </tr>`).join('')}
+        </tbody></table>
+      </div>
+    </section>`;
+}
+
+/* ---------- occupancy ----------
+   How much of the time is the house actually let, and what does an empty house
+   still cost? The calendar is one square per day; the electricity table sets each
+   bi-monthly bill against the nights that were occupied inside it. */
+
+const UNIT_CLASS = (u) => {
+  const k = String(u || '').toLowerCase();
+  if (k.includes('villa')) return 'u-villa';
+  if (k.includes('ground')) return 'u-ground';
+  if (k.includes('upper') || k.includes('first')) return 'u-upper';
+  return 'u-multi';
+};
+const dayKey = (d) => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+const isLive = (b) => !/^(cancelled|enquiry)/i.test(b._status);
+
+/* every day the house was (or will be) occupied -> the units let that day.
+   A day booking has in === out: no nights, but the house is still in use, so the
+   day itself counts as occupied. */
+function occupiedDays(){
+  const map = {};
+  DATA.bookings.filter(b => isLive(b) && b._in).forEach(b => {
+    const nights = nightsOf(b);
+    const last = nights > 0 ? nights : 1;          // day booking -> the one day
+    for (let i = 0; i < last; i++){
+      const d = new Date(b._in); d.setDate(d.getDate() + i);
+      (map[dayKey(d)] = map[dayKey(d)] || []).push(b);
+    }
+  });
+  return map;
+}
+
+function viewOccupancy(){
+  const t = today();
+  const live = DATA.bookings.filter(isLive);
+  const days = occupiedDays();
+  const keys = Object.keys(days);
+  if (!keys.length) return `<div class="head"><h1>Occupancy</h1></div>
+    <div class="card"><div class="empty">No bookings with dates yet.</div></div>`;
+
+  /* period tiles */
+  const inP = live.filter(b => inPeriod(b._in));
+  const nightsP = Object.entries(days).filter(([k]) => inPeriod(parseDate(k))).length;
+  const guestNights = inP.reduce((s,b) => s + num(b.guests) * Math.max(1, nightsOf(b)), 0);
+  const revP = inP.reduce((s,b) => s + b._total, 0);
+  const span = PERIOD === 'month' ? new Date(t.getFullYear(), t.getMonth()+1, 0).getDate()
+             : PERIOD === 'year'  ? 365
+             : Math.max(1, Math.round((Math.max(...keys.map(k=>+parseDate(k))) - Math.min(...keys.map(k=>+parseDate(k))))/86400000) + 1);
+  const occPct = Math.round(nightsP / span * 100);
+
+  /* calendar: every month between the first and last occupied day */
+  const all = keys.map(parseDate).sort((a,b)=>a-b);
+  const first = new Date(all[0].getFullYear(), all[0].getMonth(), 1);
+  const lastD = all[all.length-1];
+  const rows = [];
+  for (let m = new Date(first); m <= lastD; m.setMonth(m.getMonth()+1)){
+    const y = m.getFullYear(), mo = m.getMonth();
+    const dim = new Date(y, mo+1, 0).getDate();
+    let count = 0;
+    let cells = '';
+    for (let d = 1; d <= dim; d++){
+      const dt = new Date(y, mo, d);
+      const bs = days[dayKey(dt)];
+      if (bs) count++;
+      const cls = !bs ? '' : bs.length > 1 ? 'u-multi' : UNIT_CLASS(bs[0].unit);
+      const title = bs ? `${d} ${m.toLocaleDateString('en-IN',{month:'short'})} — ${bs.map(b=>b.guest_name+' ('+b.unit+')').join(', ')}`
+                       : `${d} ${m.toLocaleDateString('en-IN',{month:'short'})} — empty`;
+      cells += `<i class="${cls} ${dt < t ? 'pastday':''}" title="${esc(title)}"></i>`;
+    }
+    rows.push(`<div class="mrow"><span class="mlab">${m.toLocaleDateString('en-IN',{month:'short',year:'2-digit'})}</span>
+      <div class="days">${cells}</div><span class="mct ${count?'':'zero'}">${count||'·'}</span></div>`);
+  }
+
+  /* electricity: each bi-monthly bill against the nights inside its window */
+  const bills = (DATA.expenses || [])
+    .filter(e => /electric|kseb/i.test(String(e.category) + ' ' + String(e.item)))
+    .map(e => ({ d: parseDate(e.date), amt: num(e.amount), item: e.item }))
+    .filter(b => b.d && b.amt).sort((a,b) => a.d - b.d);
+  const BI = 61;                                   // KSEB reads roughly every two months
+  /* Each bill covers the stretch since the one before it. That beats assuming a
+     fixed 61 days, because the gap between bills is real data; only the very
+     first bill has to fall back to the nominal two months. */
+  const billRows = bills.map((b, i) => {
+    const prev = bills[i-1];
+    let from;
+    if (prev) from = new Date(prev.d);
+    else { from = new Date(b.d); from.setDate(from.getDate() - BI); }
+    const nights = Object.entries(days).filter(([k]) => { const d = parseDate(k); return d >= from && d < b.d; });
+    const gn = [...new Set(nights.flatMap(([,bs]) => bs))]
+      .reduce((s,x) => s + num(x.guests) * Math.max(1, nightsOf(x)), 0);
+    return { ...b, from, n: nights.length, gn };
+  });
+  const base = billRows.length ? Math.min(...billRows.map(r => r.amt)) : 0;   // the quietest bill ~ the empty-house load
+
+  return `
+    <div class="head"><h1>Occupancy</h1>
+      <div class="rt">${segHTML()}<button id="refresh">↻ Refresh</button></div></div>
+    <div class="tiles">
+      <div class="tile"><div class="k">Nights occupied</div><div class="v">${nightsP}</div><div class="s">${periodSub()}</div></div>
+      <div class="tile ${occPct<20?'alert':'good'}"><div class="k">Occupancy</div><div class="v">${occPct}%</div><div class="s">of ${span} day${span===1?'':'s'}</div></div>
+      <div class="tile"><div class="k">Guest-nights</div><div class="v">${guestNights}</div><div class="s">${inP.length} booking${inP.length===1?'':'s'}</div></div>
+      <div class="tile"><div class="k">Per occupied night</div><div class="v">${nightsP?money(revP/nightsP):'—'}</div><div class="s">${money(revP)} agreed ${periodWord()}</div></div>
+    </div>
+
+    <section>
+      <h2>Every day of the year</h2>
+      <div class="card" style="padding:14px 16px">
+        <div class="calwrap"><div class="cal">${rows.join('')}</div></div>
+        <div class="legend">
+          <span><i class="u-villa"></i>Full villa</span>
+          <span><i class="u-ground"></i>Ground floor</span>
+          <span><i class="u-upper"></i>Upper Castle</span>
+          <span><i class="u-multi"></i>More than one unit</span>
+          <span style="color:var(--mut)">pale = empty · faded = already past</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>What the empty house costs <span class="count">${billRows.length} bill${billRows.length===1?'':'s'}</span></h2>
+      <div class="card tblwrap">
+        <table><thead><tr>
+          <th>Bill paid</th><th>Period assumed</th><th class="num">Amount</th>
+          <th class="num">Nights occupied</th><th class="num">Guest-nights</th>
+          <th class="num">Above baseline</th><th class="num">Per occupied night</th>
+        </tr></thead><tbody>
+        ${billRows.length ? billRows.slice().reverse().map(r => {
+          const over = r.amt - base;
+          return `<tr>
+            <td>${fmtDate(r.d)}</td>
+            <td>${shortDate(r.from)} → ${shortDate(r.d)}</td>
+            <td class="num">${money(r.amt)}</td>
+            <td class="num" ${r.n?'':'style="color:var(--danger);font-weight:700"'}>${r.n}</td>
+            <td class="num">${r.gn || '—'}</td>
+            <td class="num">${over > 0 ? money(over) : '—'}</td>
+            <td class="num">${r.n && over > 0 ? money(over / r.n) : '—'}</td>
+          </tr>`; }).join('')
+        : '<tr><td colspan="7" class="empty">No electricity bills recorded in Expenses yet.</td></tr>'}
+        </tbody></table>
+      </div>
+      ${billRows.length ? `<p class="note">⚠️ Estimates, not measurements. Each period runs from the previous bill to
+        this one (the first falls back to ${BI} days), and bills are dated when they were paid — KSEB's actual meter
+        read dates may differ by a few days, which moves a booking in or out of a period.
+        "Baseline" is the cheapest bill on record (${money(base)}), taken as what the house draws standing empty;
+        everything above it is treated as the guests' share. The Meter Readings tab is empty, so none of this is
+        measured. Two readings per booking would replace this whole table with fact.</p>` : ''}
+    </section>
+
+    <section>
+      <h2>Booked nights, month by month</h2>
+      <div class="card tblwrap">
+        <table><thead><tr><th>Month</th><th class="num">Nights</th><th class="num">Bookings</th>
+          <th class="num">Guest-nights</th><th class="num">Agreed</th></tr></thead><tbody>
+        ${(() => {
+          const byM = {};
+          live.filter(b=>b._in).forEach(b => {
+            const k = b._in.getFullYear()+'-'+String(b._in.getMonth()+1).padStart(2,'0');
+            (byM[k] = byM[k] || {n:0,gn:0,rev:0,d:b._in});
+            byM[k].n += Math.max(1, nightsOf(b));
+            byM[k].gn += num(b.guests) * Math.max(1, nightsOf(b));
+            byM[k].rev += b._total;
+          });
+          return Object.keys(byM).sort().reverse().map(k => {
+            const m = byM[k];
+            return `<tr><td>${monthName(m.d)}</td><td class="num">${m.n}</td>
+              <td class="num">${live.filter(b=>b._in&&dayKey(b._in).startsWith(k)).length}</td>
+              <td class="num">${m.gn||'—'}</td><td class="num">${m.rev?money(m.rev):'—'}</td></tr>`;
+          }).join('');
+        })()}
+        </tbody></table>
+      </div>
+      <p class="note">Cancelled bookings are left out. A day booking counts as one occupied day and no nights.</p>
+    </section>`;
+}
+
 /* ---------- nav + wiring ---------- */
 const VIEWS = [
   {id:'summary',   ic:'📊', label:'Summary',  fn:viewSummary},
   {id:'bookings',  ic:'📅', label:'Bookings', fn:viewBookings},
+  {id:'enquiries', ic:'📨', label:'Enquiries',fn:viewEnquiries},
+  {id:'occupancy', ic:'🏠', label:'Occupancy',fn:viewOccupancy},
   {id:'money',     ic:'💰', label:'Money',    fn:viewMoney},
   {id:'inventory', ic:'📦', label:'Inventory',fn:viewInventory}
 ];
 
 function buildNav(){
   const due = DATA ? DATA.bookings.filter(b=>b._due>0&&b._total>0).length : 0;
+  const ask = enqNeedingReply();
+  const pillFor = (id) => id==='summary' ? due : id==='enquiries' ? ask : 0;
   $('nav').innerHTML = VIEWS.map(v => `<button data-v="${v.id}" class="${v.id===VIEW?'on':''}">
       <span class="ic">${v.ic}</span><span>${v.label}</span>
-      ${v.id==='summary'&&due?`<span class="pill">${due}</span>`:''}</button>`).join('');
+      ${pillFor(v.id)?`<span class="pill">${pillFor(v.id)}</span>`:''}</button>`).join('');
   $('nav').querySelectorAll('button').forEach(b => b.onclick = () => goView(b.dataset.v));
 }
 
@@ -682,6 +1075,7 @@ function wireFilters(){
   });
   filter('q','btbody',[{id:'fsrc',attr:'src'},{id:'fst',attr:'st'}]);
   filter('qi','itbody',[{id:'fcat',attr:'cat'}]);
+  filter('qn','ntbody',[{id:'fout',attr:'out'},{id:'fch',attr:'ch'}]);
 }
 
 /* ---------- boot ---------- */

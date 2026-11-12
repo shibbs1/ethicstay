@@ -206,6 +206,68 @@
   /* mobile brand strip — the sidebar is a bottom bar there, so brand at the top */
   .mobrand{display:none}
 
+  /* ---------- enquiries: pipeline + monthly bars ---------- */
+  /* No chart library: these are flex boxes whose widths/heights are the numbers.
+     Keeps the admin a three-file, zero-dependency page. */
+  .pipe{display:flex;height:36px;border-radius:10px;overflow:hidden;box-shadow:var(--shadow);background:var(--cream-dark)}
+  .pipe div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:.78rem;
+       font-weight:700;min-width:0;white-space:nowrap;overflow:hidden}
+  .p-open{background:var(--gold)}
+  .p-won{background:var(--palm)}
+  .p-merged{background:var(--teak-light)}
+  .p-lost{background:#bfae9c}
+  .legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:11px;font-size:.77rem;color:var(--mut)}
+  .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:7px}
+  .legend b{color:var(--ink)}
+
+  .bars{display:flex;align-items:flex-end;gap:12px;height:168px;padding:6px 2px 0;overflow-x:auto}
+  .bars .b{flex:1;min-width:38px;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%}
+  .bars .stack{flex:1;width:100%;display:flex;flex-direction:column;justify-content:flex-end}
+  .bars .sg{min-height:3px}
+  .bars .sg:first-child{border-radius:5px 5px 0 0}
+  .s-open{background:var(--gold)}
+  .s-won{background:var(--palm)}
+  .s-lost{background:#d9cbbc}
+  .bars .tot{font-size:.72rem;font-weight:700;color:var(--teak)}
+  .bars .lab{font-size:.63rem;color:var(--mut);white-space:nowrap}
+
+  /* an open enquiry folds open to its full note */
+  details.enq{background:#fff;border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:10px;overflow:hidden}
+  details.enq > summary{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
+       padding:13px 16px;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+  details.enq > summary::-webkit-details-marker{display:none}
+  details.enq > summary:hover{background:#fdfbf7}
+  details.enq[open] > summary{border-bottom:1px solid var(--cream-dark)}
+  details.enq .body{padding:14px 16px}
+  .enq.hot{border-left:4px solid var(--danger)}
+  .enq.warm{border-left:4px solid var(--gold)}
+  .silent{font-weight:700;white-space:nowrap;font-size:.82rem;color:var(--mut);text-align:right}
+  .silent.bad{color:var(--danger)}
+  .silent small{display:block;font-weight:400;font-size:.66rem;color:var(--mut)}
+  .ball{display:inline-block;font-size:.62rem;letter-spacing:.5px;text-transform:uppercase;
+       padding:2px 8px;border-radius:10px;font-weight:700;margin-left:6px;vertical-align:1px}
+  .ball.you{background:#fdeceb;color:var(--danger)}
+  .ball.them{background:var(--cream-dark);color:var(--mut)}
+  .t-won{background:#e2ecdf;color:var(--palm)}
+  .t-lost{background:#efe7df;color:var(--teak-light)}
+  .t-open{background:#fbf0d8;color:#8a6410}
+
+  /* ---------- occupancy calendar ---------- */
+  /* one square per day of the year, coloured by which unit was let that night */
+  .cal{display:flex;flex-direction:column;gap:5px;min-width:560px}
+  .mrow{display:flex;align-items:center;gap:10px}
+  .mlab{flex:none;width:62px;font-size:.7rem;color:var(--mut);text-align:right;white-space:nowrap}
+  .days{display:flex;gap:2px;flex:1}
+  .days i{flex:1;height:17px;border-radius:3px;background:var(--cream-dark);min-width:5px}
+  .u-villa{background:var(--terracotta) !important}
+  .u-ground{background:var(--palm) !important}
+  .u-upper{background:var(--gold) !important}
+  .u-multi{background:var(--teak) !important}
+  .days i.pastday{opacity:.45}
+  .mct{flex:none;width:26px;font-size:.7rem;font-weight:700;color:var(--teak);text-align:left}
+  .mct.zero{color:var(--cream-dark)}
+  .calwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
   /* ---------- gate ---------- */
   .gate{max-width:460px;margin:12vh auto;text-align:center;padding:0 20px}
   .gate-brand{display:flex;align-items:center;justify-content:center;gap:11px;margin-bottom:26px}

@@ -16,6 +16,7 @@ window.ADMIN_CONFIG = {
   /* Fetched separately and allowed to fail: if the tab has not been created in
      the Sheet yet, the rest of the ledger still loads. */
   OPTIONAL_TABS: {
-    conversations: 'Conversations!A:F'
+    conversations: 'Conversations!A:F',
+    enquiries:     'Enquiries!A:O'
   }
 };
